@@ -28,7 +28,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    const { error } = await supabase.auth.signOut()
+
+    if (error) {
+      // The server-side revoke failed (offline, or the refresh token is
+      // already gone). Drop the local session anyway so the user is not left
+      // in a half-signed-in state that bounces them back into the app.
+      if (import.meta.env.DEV) console.error('[auth] signOut', error)
+      await supabase.auth.signOut({ scope: 'local' })
+    }
   }
 
   return (

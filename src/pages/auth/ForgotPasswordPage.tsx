@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { AuthLayout } from '../../components/AuthLayout'
 import { supabase } from '../../lib/supabase'
+import { getAuthErrorMessage } from '../../lib/auth-errors'
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -21,7 +22,7 @@ export function ForgotPasswordPage() {
     setLoading(false)
 
     if (error) {
-      setError(error.message)
+      setError(getAuthErrorMessage(error))
       return
     }
 
@@ -67,7 +68,7 @@ export function ForgotPasswordPage() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500"
           />
         </div>
 

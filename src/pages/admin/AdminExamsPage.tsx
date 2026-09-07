@@ -72,7 +72,7 @@ export function AdminExamsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Denemeler</h1>
           <p className="mt-1 text-sm text-gray-600">
-            HMGS deneme sınavlarını oluşturun ve yönetin.
+            HMGSlab deneme sınavlarını oluşturun ve yönetin.
           </p>
         </div>
         <Link

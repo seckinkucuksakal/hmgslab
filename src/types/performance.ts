@@ -54,6 +54,14 @@ export type TopicPerformanceStat = {
   correct_percent: number
 }
 
+export type PendingExamPerformance = {
+  attempt_id: string
+  exam_id: string
+  exam_title: string
+  submitted_at: string | null
+  results_publish_at: string
+}
+
 export type UserPerformanceAnalytics = {
   has_data: boolean
   overview: PerformanceOverview | null
@@ -62,6 +70,7 @@ export type UserPerformanceAnalytics = {
   topics: TopicPerformanceStat[]
   strongest_subject: SubjectHighlight | null
   weakest_subject: SubjectHighlight | null
+  pending_exams: PendingExamPerformance[]
   is_limited_data: boolean
   subject_min_answered: number
   trend_threshold: number
@@ -69,7 +78,7 @@ export type UserPerformanceAnalytics = {
 
 export function formatPercent(value: number): string {
   return value.toLocaleString('tr-TR', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 1,
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2,
   })
 }

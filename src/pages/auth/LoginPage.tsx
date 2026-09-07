@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../../components/AuthLayout'
 import { PasswordInput } from '../../components/PasswordInput'
 import { supabase } from '../../lib/supabase'
+import { getAuthErrorMessage } from '../../lib/auth-errors'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -29,7 +30,7 @@ export function LoginPage() {
     setLoading(false)
 
     if (error) {
-      setError(error.message)
+      setError(getAuthErrorMessage(error))
       return
     }
 
@@ -56,7 +57,7 @@ export function LoginPage() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500"
           />
         </div>
 

@@ -1,4 +1,13 @@
-export type AttemptRanking = {
+export type AttemptRanking =
+  | {
+      embargo: true
+      results_publish_at: string
+    }
+  | ({
+      embargo?: false
+    } & AttemptRankingResult)
+
+export type AttemptRankingResult = {
   exam_id: string
   exam_title: string
   rank: number

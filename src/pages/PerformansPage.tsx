@@ -5,8 +5,50 @@ import {
   getUserPerformanceAnalytics,
 } from '../lib/performance'
 import { PerformanceTrendChart } from '../components/performance/PerformanceTrendChart'
-import type { UserPerformanceAnalytics } from '../types/performance'
+import { formatIstanbulDateTimeShort } from '../lib/istanbul-time'
+import type {
+  PendingExamPerformance,
+  UserPerformanceAnalytics,
+} from '../types/performance'
 import { formatPercent } from '../types/performance'
+
+function PendingExamsSection({
+  pending,
+}: {
+  pending: PendingExamPerformance[]
+}) {
+  if (pending.length === 0) return null
+
+  return (
+    <section className="border-b border-gray-200 pb-8">
+      <h2 className="text-sm font-medium text-gray-900">
+        Sonuç bekleyen sınavlar
+      </h2>
+      <p className="mt-1 text-xs text-gray-500">
+        Canlı sınav sonuçları açıklanana kadar puan ve analiz gösterilmez.
+      </p>
+      <ul className="mt-4 divide-y divide-gray-200 border-y border-gray-200">
+        {pending.map((exam) => (
+          <li key={exam.attempt_id} className="py-3">
+            <Link
+              to={`/sonuclar/${exam.attempt_id}`}
+              className="block hover:opacity-80"
+            >
+              <p className="text-sm font-medium text-gray-900">
+                {exam.exam_title}
+              </p>
+              <p className="mt-1 text-xs text-amber-800">
+                Sonuçlar{' '}
+                {formatIstanbulDateTimeShort(exam.results_publish_at)} tarihinde
+                açıklanacak
+              </p>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
 
 function OverviewSection({ analytics }: { analytics: UserPerformanceAnalytics }) {
   const { overview } = analytics
@@ -30,15 +72,15 @@ function OverviewSection({ analytics }: { analytics: UserPerformanceAnalytics })
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-gray-500">Ortalama doğru</dt>
+          <dt className="text-xs text-gray-500">Ortalama puan</dt>
           <dd className="mt-1 text-lg font-semibold tabular-nums text-gray-900">
-            %{formatPercent(overview.average_correct_percent)}
+            {formatPercent(overview.average_correct_percent)} puan
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-gray-500">En iyi performans</dt>
+          <dt className="text-xs text-gray-500">En iyi puan</dt>
           <dd className="mt-1 text-lg font-semibold tabular-nums text-gray-900">
-            %{formatPercent(overview.best_correct_percent)}
+            {formatPercent(overview.best_correct_percent)} puan
           </dd>
           <p className="mt-0.5 text-xs text-gray-500">{overview.best_exam_title}</p>
         </div>
@@ -50,8 +92,8 @@ function OverviewSection({ analytics }: { analytics: UserPerformanceAnalytics })
           {overview.recent_avg_percent !== null &&
             overview.previous_avg_percent !== null && (
               <p className="mt-0.5 text-xs text-gray-500">
-                Son 3: %{formatPercent(overview.recent_avg_percent)} · Önceki 3:{' '}
-                %{formatPercent(overview.previous_avg_percent)}
+                Son 3: {formatPercent(overview.recent_avg_percent)} · Önceki 3:{' '}
+                {formatPercent(overview.previous_avg_percent)}
               </p>
             )}
         </div>
@@ -119,18 +161,34 @@ export function PerformansPage() {
   }
 
   if (!analytics?.has_data) {
+    const pending = analytics?.pending_exams ?? []
+
     return (
       <div>
         <h1 className="text-2xl font-semibold text-gray-900">Performans</h1>
-        <p className="mt-4 text-sm text-gray-600">
-          Performans analizi için henüz yeterli deneme veriniz bulunmuyor.
-        </p>
-        <Link
-          to="/denemeler"
-          className="mt-6 inline-block rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          Deneme çöz
-        </Link>
+        {pending.length > 0 ? (
+          <>
+            <p className="mt-2 max-w-lg text-sm text-gray-600">
+              Tamamladığınız canlı sınavın sonuçları henüz açıklanmadı.
+              Performans analizi sonuçlar yayınlandığında güncellenecek.
+            </p>
+            <div className="mt-8">
+              <PendingExamsSection pending={pending} />
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="mt-4 text-sm text-gray-600">
+              Performans analizi için henüz yeterli deneme veriniz bulunmuyor.
+            </p>
+            <Link
+              to="/denemeler"
+              className="mt-6 inline-block rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            >
+              Deneme çöz
+            </Link>
+          </>
+        )}
       </div>
     )
   }
@@ -147,6 +205,10 @@ export function PerformansPage() {
       </p>
 
       <div className="mt-8 space-y-10">
+        {(analytics.pending_exams?.length ?? 0) > 0 && (
+          <PendingExamsSection pending={analytics.pending_exams} />
+        )}
+
         <OverviewSection analytics={analytics} />
 
         <section className="border-b border-gray-200 pb-8">
@@ -167,7 +229,7 @@ export function PerformansPage() {
                       {exam.exam_title}
                     </p>
                     <span className="text-sm tabular-nums text-gray-700">
-                      %{formatPercent(exam.correct_percent)}
+                      {formatPercent(exam.correct_percent)} puan
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-gray-500">

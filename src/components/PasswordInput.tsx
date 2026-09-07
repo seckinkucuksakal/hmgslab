@@ -81,7 +81,7 @@ export function PasswordInput({
           autoComplete={autoComplete}
           value={value}
           onChange={handleChange}
-          className="w-full rounded-md border border-gray-300 py-2 pl-3 pr-10 text-sm outline-none focus:border-gray-500"
+          className="w-full rounded-md border border-gray-300 py-2 pl-3 pr-10 text-sm outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500"
         />
         <button
           type="button"

@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom'
-import type { AttemptRanking } from '../../types/exam-ranking'
+import type { AttemptRankingResult } from '../../types/exam-ranking'
 import {
   formatParticipantCount,
   formatTopPercent,
 } from '../../types/exam-ranking'
 
 type RankingSummaryProps = {
-  ranking: AttemptRanking
+  ranking: AttemptRankingResult
   leaderboardHref: string
 }
 

@@ -1,61 +1,31 @@
 import { supabase } from './supabase'
-import type { AttemptReview, AttemptResultListItem } from '../types/exam-review'
-import { getCompletionPercent } from '../types/exam-review'
+import type {
+  AttemptReview,
+  AttemptReviewFull,
+  AttemptResultListItem,
+} from '../types/exam-review'
+import { isReviewEmbargo } from '../types/exam-review'
+
+/** Newest-first page size for the results history list. */
+export const ATTEMPT_RESULTS_PAGE_SIZE = 20
 
 export async function fetchAttemptResults(
-  userId: string,
+  _userId: string,
+  limit = ATTEMPT_RESULTS_PAGE_SIZE,
 ): Promise<AttemptResultListItem[]> {
-  const { data, error } = await supabase
-    .from('exam_attempts')
-    .select(
-      `
-      id,
-      submitted_at,
-      status,
-      correct_count,
-      incorrect_count,
-      blank_count,
-      exams(title),
-      attempt_questions(count)
-    `,
-    )
-    .eq('user_id', userId)
-    .in('status', ['submitted', 'expired'])
-    .order('submitted_at', { ascending: false })
+  const { data, error } = await supabase.rpc('get_attempt_results_list', {
+    p_limit: limit,
+  })
 
   if (error) throw error
-
-  return (data ?? []).map((row) => {
-    const exam = Array.isArray(row.exams) ? row.exams[0] : row.exams
-    const countEntry = Array.isArray(row.attempt_questions)
-      ? row.attempt_questions[0]
-      : row.attempt_questions
-    const totalQuestions =
-      countEntry && typeof countEntry === 'object' && 'count' in countEntry
-        ? countEntry.count
-        : 0
-    const correct = row.correct_count ?? 0
-
-    return {
-      id: row.id,
-      exam_title: exam?.title ?? 'Deneme',
-      submitted_at: row.submitted_at,
-      status: row.status as 'submitted' | 'expired',
-      correct_count: correct,
-      incorrect_count: row.incorrect_count ?? 0,
-      blank_count: row.blank_count ?? 0,
-      total_questions: totalQuestions,
-      completion_percent: getCompletionPercent(correct, totalQuestions),
-    }
-  })
+  return (data ?? []) as AttemptResultListItem[]
 }
 
 export async function fetchRecentAttemptResults(
   userId: string,
   limit = 3,
 ): Promise<AttemptResultListItem[]> {
-  const results = await fetchAttemptResults(userId)
-  return results.slice(0, limit)
+  return fetchAttemptResults(userId, limit)
 }
 
 export async function getAttemptReview(
@@ -67,6 +37,16 @@ export async function getAttemptReview(
 
   if (error) throw error
   return data as AttemptReview
+}
+
+export async function getAttemptReviewFull(
+  attemptId: string,
+): Promise<AttemptReviewFull> {
+  const data = await getAttemptReview(attemptId)
+  if (isReviewEmbargo(data)) {
+    throw new Error(data.message)
+  }
+  return data
 }
 
 export function getReviewErrorMessage(error: unknown): string {

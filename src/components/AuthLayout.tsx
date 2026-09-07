@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { ThemeToggle } from './ThemeToggle'
+import { LegalFooter } from './layout/LegalFooter'
+import { SITE_NAME } from '../lib/brand'
 
 type AuthLayoutProps = {
   title: string
@@ -8,16 +11,22 @@ type AuthLayoutProps = {
 
 export function AuthLayout({ title, children }: AuthLayoutProps) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <div className="mb-6 text-center">
-          <Link to="/" className="text-xl font-semibold text-gray-900">
-            HMGS
-          </Link>
-          <h1 className="mt-2 text-lg font-medium text-gray-800">{title}</h1>
-        </div>
-        {children}
+    <div className="flex min-h-screen flex-col bg-gray-50">
+      <div className="flex justify-end px-4 pt-4">
+        <ThemeToggle compact />
       </div>
-    </main>
+      <main className="flex flex-1 items-center justify-center px-4 py-8 pb-24">
+        <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 text-center">
+            <Link to="/" className="text-xl font-semibold text-gray-900">
+              {SITE_NAME}
+            </Link>
+            <h1 className="mt-2 text-lg font-medium text-gray-800">{title}</h1>
+          </div>
+          {children}
+        </div>
+      </main>
+      <LegalFooter />
+    </div>
   )
 }

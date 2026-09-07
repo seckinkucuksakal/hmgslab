@@ -1,8 +1,8 @@
 import { supabase } from './supabase'
 import type {
-  ActiveExamListItem,
   AttemptSubmitResult,
   AttemptSync,
+  ExamSession,
   ExamSessionQuestion,
 } from '../types/exam-attempt'
 
@@ -51,12 +51,15 @@ export async function submitExamAttempt(
 
 export async function fetchActiveExams(
   userId: string,
-): Promise<ActiveExamListItem[]> {
+): Promise<
+  import('../types/exam-attempt').ActiveExamListItem[]
+> {
   const [examsResult, attemptsResult] = await Promise.all([
     supabase
       .from('exams')
       .select('id, title, duration_minutes, exam_questions(count)')
       .eq('is_active', true)
+      .eq('exam_mode', 'practice')
       .order('updated_at', { ascending: false }),
     supabase
       .from('exam_attempts')
@@ -91,71 +94,50 @@ export async function fetchActiveExams(
   })
 }
 
+/**
+ * Loads the active exam session in a single call. The RPC is the only path
+ * students have to question text and options; it never returns is_correct or
+ * explanation data.
+ */
+export async function loadExamSession(
+  attemptId: string,
+): Promise<ExamSession> {
+  const { data, error } = await supabase.rpc('get_exam_session', {
+    p_attempt_id: attemptId,
+  })
+
+  if (error) throw error
+  return data as ExamSession
+}
+
 export async function loadExamSessionQuestions(
   attemptId: string,
 ): Promise<ExamSessionQuestion[]> {
-  const { data: rows, error } = await supabase
-    .from('attempt_questions')
-    .select('sort_order, question_id, questions(id, question_text)')
-    .eq('attempt_id', attemptId)
-    .order('sort_order', { ascending: true })
+  const session = await loadExamSession(attemptId)
+  return session.questions
+}
 
-  if (error) throw error
-  if (!rows?.length) return []
-
-  const questionIds = rows.map((row) => row.question_id)
-
-  const [optionsResult, answersResult] = await Promise.all([
-    supabase
-      .from('question_options_public')
-      .select('id, question_id, option_key, option_text, sort_order')
-      .in('question_id', questionIds)
-      .order('sort_order', { ascending: true }),
-    supabase
-      .from('attempt_answers')
-      .select('question_id, selected_option_id')
-      .eq('attempt_id', attemptId),
-  ])
-
-  if (optionsResult.error) throw optionsResult.error
-  if (answersResult.error) throw answersResult.error
-
-  const optionsByQuestion = new Map<string, ExamSessionQuestion['options']>()
-  for (const option of optionsResult.data ?? []) {
-    const list = optionsByQuestion.get(option.question_id) ?? []
-    list.push(option)
-    optionsByQuestion.set(option.question_id, list)
+export function getPostSubmitPath(
+  attemptId: string,
+  result: AttemptSubmitResult | AttemptSync,
+): string {
+  const resultsAvailable = result.results_available ?? true
+  if (result.exam_mode === 'scheduled' && !resultsAvailable) {
+    return `/sinav/${attemptId}/tamamlandi`
   }
-
-  const answersByQuestion = new Map(
-    (answersResult.data ?? []).map((row) => [
-      row.question_id,
-      row.selected_option_id,
-    ]),
-  )
-
-  return rows.map((row) => {
-    const question = Array.isArray(row.questions)
-      ? row.questions[0]
-      : row.questions
-
-    return {
-      id: row.question_id,
-      sort_order: row.sort_order,
-      question_text: question?.question_text ?? '',
-      options: optionsByQuestion.get(row.question_id) ?? [],
-      selected_option_id: answersByQuestion.get(row.question_id) ?? null,
-    }
-  })
+  return `/sonuclar/${attemptId}`
 }
 
 export function getExamErrorMessage(error: unknown): string {
   if (error && typeof error === 'object' && 'message' in error) {
     const message = String((error as { message: string }).message)
-    if (message.includes('Deneme')) return message
+    if (message.includes('Deneme') || message.includes('Sınav')) return message
     if (message.includes('Unauthorized')) return 'Oturum gerekli.'
     if (message.includes('düzenlenemez')) return 'Deneme artık düzenlenemez.'
     if (message.includes('tamamlanmış')) return 'Deneme zaten tamamlanmış.'
+    if (message.includes('giriş süresi')) return message
+    if (message.includes('henüz başlamadı')) return message
+    if (message.includes('süresi doldu')) return message
   }
 
   return 'Bir hata oluştu. Lütfen tekrar deneyin.'

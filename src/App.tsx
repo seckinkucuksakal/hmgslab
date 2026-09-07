@@ -1,11 +1,13 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AdminRoute } from './components/AdminRoute'
 import { AuthProvider } from './components/AuthProvider'
+import { ThemeProvider } from './hooks/useTheme'
 import { GuestRoute } from './components/GuestRoute'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AdminLayout } from './components/layout/AdminLayout'
 import { AppLayout } from './components/layout/AppLayout'
 import { ExamLayout } from './components/layout/ExamLayout'
+import { ServerClockProvider } from './hooks/useServerClock'
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage'
 import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
@@ -19,6 +21,8 @@ import { AdminNewQuestionPage } from './pages/admin/AdminNewQuestionPage'
 import { AdminQuestionsPage } from './pages/admin/AdminQuestionsPage'
 import { DenemelerPage } from './pages/DenemelerPage'
 import { ExamLeaderboardPage } from './pages/ExamLeaderboardPage'
+import { ExamCompletionPage } from './pages/exam/ExamCompletionPage'
+import { ExamLobbyPage } from './pages/exam/ExamLobbyPage'
 import { ExamResultPage } from './pages/exam/ExamResultPage'
 import { ExamTakePage } from './pages/exam/ExamTakePage'
 import { HomePage } from './pages/HomePage'
@@ -26,13 +30,21 @@ import { PerformansPage } from './pages/PerformansPage'
 import { ProfilPage } from './pages/ProfilPage'
 import { SonuclarPage } from './pages/SonuclarPage'
 import { SonucDetailPage } from './pages/SonucDetailPage'
-import { SoruBankasiPage } from './pages/SoruBankasiPage'
+import { CookieConsent } from './components/CookieConsent'
+import {
+  CerezPolitikasiPage,
+  GizlilikPage,
+  KullanimKosullariPage,
+  KvkkPage,
+} from './pages/legal/LegalPages'
 
 function App() {
   return (
     <BrowserRouter>
+      <ThemeProvider>
       <AuthProvider>
-        <Routes>
+        <ServerClockProvider>
+          <Routes>
           <Route
             element={
               <ProtectedRoute>
@@ -42,6 +54,7 @@ function App() {
           >
             <Route path="/" element={<HomePage />} />
             <Route path="/denemeler" element={<DenemelerPage />} />
+            <Route path="/denemeler/:examId/lobi" element={<ExamLobbyPage />} />
             <Route
               path="/denemeler/:examId/siralama"
               element={<ExamLeaderboardPage />}
@@ -49,7 +62,6 @@ function App() {
             <Route path="/sonuclar" element={<SonuclarPage />} />
             <Route path="/sonuclar/:attemptId" element={<SonucDetailPage />} />
             <Route path="/performans" element={<PerformansPage />} />
-            <Route path="/soru-bankasi" element={<SoruBankasiPage />} />
             <Route path="/profil" element={<ProfilPage />} />
           </Route>
 
@@ -61,6 +73,10 @@ function App() {
             }
           >
             <Route path="/sinav/:attemptId" element={<ExamTakePage />} />
+            <Route
+              path="/sinav/:attemptId/tamamlandi"
+              element={<ExamCompletionPage />}
+            />
             <Route
               path="/sinav/:attemptId/sonuc"
               element={<ExamResultPage />}
@@ -116,9 +132,17 @@ function App() {
           />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
+          <Route path="/kvkk" element={<KvkkPage />} />
+          <Route path="/gizlilik" element={<GizlilikPage />} />
+          <Route path="/cerez-politikasi" element={<CerezPolitikasiPage />} />
+          <Route path="/kullanim-kosullari" element={<KullanimKosullariPage />} />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <CookieConsent />
+        </ServerClockProvider>
       </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }

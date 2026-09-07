@@ -1,5 +1,11 @@
 export const OPTION_KEYS = ['A', 'B', 'C', 'D', 'E'] as const
 
+/**
+ * Admin screens filter the question bank in memory, so the fetch has to stay
+ * bounded. When the cap is reached the UI tells the admin to narrow the search.
+ */
+export const QUESTION_BANK_FETCH_LIMIT = 500
+
 export type OptionKey = (typeof OPTION_KEYS)[number]
 
 export type QuestionFormValues = {

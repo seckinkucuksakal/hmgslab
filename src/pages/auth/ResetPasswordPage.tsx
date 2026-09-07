@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../../components/AuthLayout'
 import { PasswordInput } from '../../components/PasswordInput'
 import { supabase } from '../../lib/supabase'
+import { getAuthErrorMessage } from '../../lib/auth-errors'
 import { useAuth } from '../../hooks/useAuth'
 
 export function ResetPasswordPage() {
@@ -29,7 +30,7 @@ export function ResetPasswordPage() {
     setLoading(false)
 
     if (error) {
-      setError(error.message)
+      setError(getAuthErrorMessage(error))
       return
     }
 

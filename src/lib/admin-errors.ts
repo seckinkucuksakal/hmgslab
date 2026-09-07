@@ -8,8 +8,11 @@ export function getAdminErrorMessage(error: PostgrestError | Error | null): stri
   if (message.includes('unauthorized')) {
     return 'Bu işlem için yetkiniz yok.'
   }
+  if (message.includes('results cannot publish before exam ends')) {
+    return 'Sonuçlar sınav bitiş saatinden önce yayınlanamaz.'
+  }
   if (message.includes('exactly 5 options')) {
-    return 'HMGS soruları için beş seçenek zorunludur.'
+    return 'HMGSlab soruları için beş seçenek zorunludur.'
   }
   if (message.includes('exactly one correct')) {
     return 'Tam olarak bir doğru cevap seçilmelidir.'

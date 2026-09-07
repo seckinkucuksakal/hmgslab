@@ -44,23 +44,56 @@ export type AttemptReviewSummary = {
   total_questions: number
 }
 
-export type AttemptReview = {
+export type AttemptReviewEmbargo = {
+  embargo: true
+  results_publish_at: string
+  exam_title: string
+  attempt_id: string
+  status: 'submitted' | 'expired'
+  submitted_at: string | null
+  message: string
+}
+
+export type AttemptReviewFull = {
+  embargo: false
   attempt: AttemptReviewSummary
   subjects: SubjectPerformance[]
   questions: ReviewQuestion[]
 }
 
-export type AttemptResultListItem = {
+export type AttemptReview = AttemptReviewEmbargo | AttemptReviewFull
+
+export type AttemptResultListItemPublished = {
   id: string
   exam_title: string
   submitted_at: string | null
   status: 'submitted' | 'expired'
+  embargo: false
+  results_publish_at?: string | null
   correct_count: number
   incorrect_count: number
   blank_count: number
   total_questions: number
   completion_percent: number
 }
+
+export type AttemptResultListItemEmbargo = {
+  id: string
+  exam_title: string
+  submitted_at: string | null
+  status: 'submitted' | 'expired'
+  embargo: true
+  results_publish_at: string
+  correct_count: null
+  incorrect_count: null
+  blank_count: null
+  total_questions: number
+  completion_percent: null
+}
+
+export type AttemptResultListItem =
+  | AttemptResultListItemPublished
+  | AttemptResultListItemEmbargo
 
 export const reviewStatusLabels: Record<ReviewQuestionStatus, string> = {
   correct: 'Doğru',
@@ -75,10 +108,23 @@ export const reviewFilterLabels: Record<ReviewFilter, string> = {
   blank: 'Boşlar',
 }
 
+import { computeExamScore } from '../lib/exam-score'
+
 export function getCompletionPercent(
   correct: number,
   total: number,
 ): number {
-  if (total === 0) return 0
-  return Math.round((correct / total) * 100)
+  return computeExamScore(correct, total)
+}
+
+export function isReviewEmbargo(
+  review: AttemptReview,
+): review is AttemptReviewEmbargo {
+  return 'embargo' in review && review.embargo === true
+}
+
+export function isResultEmbargo(
+  item: AttemptResultListItem,
+): item is AttemptResultListItemEmbargo {
+  return item.embargo === true
 }

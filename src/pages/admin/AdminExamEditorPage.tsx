@@ -2,12 +2,21 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getAdminErrorMessage } from '../../lib/admin-errors'
-import { difficultyLabels } from '../../lib/question-form'
+import {
+  adminPublishExamResults,
+  istanbulLocalToTimestamptz,
+} from '../../lib/live-exam'
+import { formatIstanbulDateTimeShort } from '../../lib/istanbul-time'
+import {
+  QUESTION_BANK_FETCH_LIMIT,
+  difficultyLabels,
+} from '../../lib/question-form'
 import {
   validateExamForm,
   type ExamFormErrors,
   type ExamFormValues,
 } from '../../types/exam'
+import type { ExamMode, ResultsPublishMode } from '../../types/exam'
 import type { Difficulty, Subject, Topic } from '../../types/question-bank'
 
 type BankQuestion = {
@@ -27,6 +36,32 @@ const fieldErrorClass = 'mt-1 text-xs text-red-600'
 const filterClass =
   'rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500'
 
+function parseIstanbulDateTime(iso: string): { date: string; time: string } {
+  const date = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Istanbul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(iso))
+
+  const time = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Istanbul',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(iso))
+
+  return { date, time }
+}
+
+type SchedulePreview = {
+  lobby: Date
+  start: Date
+  lateEntry: Date
+  end: Date
+  results: Date
+}
+
 type AdminExamEditorPageProps = {
   examId?: string
 }
@@ -40,7 +75,20 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
     description: '',
     durationMinutes: 120,
     isActive: false,
+    examMode: 'practice',
+    scheduledDate: '',
+    scheduledTime: '',
+    lobbyOffsetMinutes: 30,
+    lateEntryMinutes: 10,
+    resultsDelayMinutes: 30,
+    resultsPublishMode: 'delay',
+    resultsPublishDate: '',
+    resultsPublishTime: '',
   })
+  const [loadedResultsPublishAt, setLoadedResultsPublishAt] = useState<
+    string | null
+  >(null)
+  const [publishingResults, setPublishingResults] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [bankQuestions, setBankQuestions] = useState<BankQuestion[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -56,6 +104,9 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
   const [subjectFilter, setSubjectFilter] = useState('')
   const [topicFilter, setTopicFilter] = useState('')
   const [difficultyFilter, setDifficultyFilter] = useState('')
+  const [schedulePreview, setSchedulePreview] = useState<SchedulePreview | null>(
+    null,
+  )
 
   useEffect(() => {
     Promise.all([
@@ -65,7 +116,8 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
           'id, question_text, difficulty, subject_id, topic_id, subjects(name), topics(name)',
         )
         .eq('is_active', true)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(QUESTION_BANK_FETCH_LIMIT),
       supabase
         .from('subjects')
         .select('id, name, slug, sort_order, is_active, created_at')
@@ -109,12 +161,34 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
       const exam = examResult.data
       const ids = (linksResult.data ?? []).map((row) => row.question_id)
 
+      const scheduled =
+        exam.exam_mode === 'scheduled' && exam.scheduled_start_at
+          ? parseIstanbulDateTime(exam.scheduled_start_at)
+          : null
+
+      const resultsScheduled =
+        exam.exam_mode === 'scheduled' && exam.results_publish_at
+          ? parseIstanbulDateTime(exam.results_publish_at)
+          : null
+
+      const useCustomResults = Boolean(exam.results_publish_at_override)
+
       setValues({
         title: exam.title,
         description: exam.description ?? '',
         durationMinutes: exam.duration_minutes,
         isActive: exam.is_active,
+        examMode: (exam.exam_mode as ExamMode) ?? 'practice',
+        scheduledDate: scheduled?.date ?? '',
+        scheduledTime: scheduled?.time ?? '',
+        lobbyOffsetMinutes: exam.lobby_offset_minutes ?? 30,
+        lateEntryMinutes: exam.late_entry_minutes ?? 10,
+        resultsDelayMinutes: exam.results_delay_minutes ?? 30,
+        resultsPublishMode: useCustomResults ? 'custom' : 'delay',
+        resultsPublishDate: useCustomResults ? (resultsScheduled?.date ?? '') : '',
+        resultsPublishTime: useCustomResults ? (resultsScheduled?.time ?? '') : '',
       })
+      setLoadedResultsPublishAt(exam.results_publish_at ?? null)
       setSelectedIds(ids)
 
       if (ids.length > 0) {
@@ -167,6 +241,80 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
     })
   }, [bankQuestions, subjectFilter, topicFilter, difficultyFilter, search])
 
+  useEffect(() => {
+    if (
+      values.examMode !== 'scheduled' ||
+      !values.scheduledDate ||
+      !values.scheduledTime
+    ) {
+      setSchedulePreview(null)
+      return
+    }
+
+    let cancelled = false
+    const timer = window.setTimeout(async () => {
+      try {
+        const startIso = await istanbulLocalToTimestamptz(
+          values.scheduledDate,
+          values.scheduledTime,
+        )
+        if (cancelled) return
+
+        const start = new Date(startIso)
+        let results: Date
+
+        if (
+          values.resultsPublishMode === 'custom' &&
+          values.resultsPublishDate &&
+          values.resultsPublishTime
+        ) {
+          const resultsIso = await istanbulLocalToTimestamptz(
+            values.resultsPublishDate,
+            values.resultsPublishTime,
+          )
+          if (cancelled) return
+          results = new Date(resultsIso)
+        } else {
+          results = new Date(
+            start.getTime() +
+              values.durationMinutes * 60_000 +
+              values.resultsDelayMinutes * 60_000,
+          )
+        }
+
+        setSchedulePreview({
+          lobby: new Date(
+            start.getTime() - values.lobbyOffsetMinutes * 60_000,
+          ),
+          start,
+          lateEntry: new Date(
+            start.getTime() + values.lateEntryMinutes * 60_000,
+          ),
+          end: new Date(start.getTime() + values.durationMinutes * 60_000),
+          results,
+        })
+      } catch {
+        if (!cancelled) setSchedulePreview(null)
+      }
+    }, 400)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [
+    values.durationMinutes,
+    values.examMode,
+    values.lateEntryMinutes,
+    values.lobbyOffsetMinutes,
+    values.resultsDelayMinutes,
+    values.resultsPublishDate,
+    values.resultsPublishMode,
+    values.resultsPublishTime,
+    values.scheduledDate,
+    values.scheduledTime,
+  ])
+
   const selectedQuestions = useMemo(() => {
     const map = new Map(bankQuestions.map((q) => [q.id, q]))
     return selectedIds
@@ -175,6 +323,63 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
   }, [bankQuestions, selectedIds])
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
+
+  const resultsAlreadyPublished = useMemo(() => {
+    if (!loadedResultsPublishAt) return false
+    return new Date(loadedResultsPublishAt).getTime() <= Date.now()
+  }, [loadedResultsPublishAt])
+
+  const fillCustomResultsFromPreview = () => {
+    if (!schedulePreview) return
+    const parsed = parseIstanbulDateTime(schedulePreview.results.toISOString())
+    setValues((current) => ({
+      ...current,
+      resultsPublishMode: 'custom',
+      resultsPublishDate: parsed.date,
+      resultsPublishTime: parsed.time,
+    }))
+  }
+
+  const handlePublishResultsNow = async () => {
+    if (!examId) return
+    if (
+      !window.confirm(
+        'Sonuçları hemen yayınlamak istediğinize emin misiniz? Bu işlem geri alınamaz.',
+      )
+    ) {
+      return
+    }
+
+    setGeneralError(null)
+    setSuccess(null)
+    setPublishingResults(true)
+
+    try {
+      const publishedAt = await adminPublishExamResults(examId)
+      setLoadedResultsPublishAt(publishedAt)
+      const parsed = parseIstanbulDateTime(publishedAt)
+      setValues((current) => ({
+        ...current,
+        resultsPublishMode: 'custom',
+        resultsPublishDate: parsed.date,
+        resultsPublishTime: parsed.time,
+      }))
+      setSuccess('Sonuçlar yayınlandı.')
+    } catch (err) {
+      const normalized =
+        err instanceof Error
+          ? err
+          : err &&
+              typeof err === 'object' &&
+              'message' in err &&
+              typeof (err as { message: unknown }).message === 'string'
+            ? ({ message: (err as { message: string }).message } as Error)
+            : null
+      setGeneralError(getAdminErrorMessage(normalized))
+    } finally {
+      setPublishingResults(false)
+    }
+  }
 
   const toggleQuestion = (questionId: string) => {
     setSelectedIds((current) =>
@@ -212,11 +417,43 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
 
     setSaving(true)
 
+    let scheduledStartAt: string | null = null
+    let resultsPublishAt: string | null = null
+    if (values.examMode === 'scheduled') {
+      try {
+        scheduledStartAt = await istanbulLocalToTimestamptz(
+          values.scheduledDate,
+          values.scheduledTime,
+        )
+        if (values.resultsPublishMode === 'custom') {
+          resultsPublishAt = await istanbulLocalToTimestamptz(
+            values.resultsPublishDate,
+            values.resultsPublishTime,
+          )
+        }
+      } catch {
+        setSaving(false)
+        setGeneralError('Geçersiz sınav veya sonuç tarihi/saati.')
+        return
+      }
+    }
+
+    const useCustomResults =
+      values.examMode === 'scheduled' && values.resultsPublishMode === 'custom'
+
     const examPayload = {
       title: values.title.trim(),
       description: values.description.trim() || null,
       duration_minutes: values.durationMinutes,
       is_active: values.isActive,
+      exam_mode: values.examMode,
+      scheduled_start_at:
+        values.examMode === 'scheduled' ? scheduledStartAt : null,
+      lobby_offset_minutes: values.lobbyOffsetMinutes,
+      late_entry_minutes: values.lateEntryMinutes,
+      results_delay_minutes: values.resultsDelayMinutes,
+      results_publish_at_override: useCustomResults,
+      ...(useCustomResults ? { results_publish_at: resultsPublishAt } : {}),
     }
 
     let targetExamId = examId
@@ -278,10 +515,16 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
     setSubmitAttempted(false)
     setFieldErrors({})
 
+    if (useCustomResults && resultsPublishAt) {
+      setLoadedResultsPublishAt(resultsPublishAt)
+    } else if (values.examMode === 'scheduled' && schedulePreview) {
+      setLoadedResultsPublishAt(schedulePreview.results.toISOString())
+    }
+
     if (!isEditing && targetExamId) {
       navigate(`/admin/denemeler/${targetExamId}`, { replace: true })
     }
-  }, [examId, isEditing, navigate, selectedIds, values])
+  }, [examId, isEditing, navigate, schedulePreview, selectedIds, values])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -341,7 +584,7 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
             value={values.title}
             onChange={(e) => setValues((c) => ({ ...c, title: e.target.value }))}
             className={inputClass}
-            placeholder="Örn. HMGS Deneme 1"
+            placeholder="Örn. HMGSlab Deneme 1"
           />
           {submitAttempted && fieldErrors.title && (
             <p className={fieldErrorClass}>{fieldErrors.title}</p>
@@ -409,6 +652,284 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
             </label>
           </div>
         </div>
+
+        <div>
+          <span className={labelClass}>Deneme türü</span>
+          <div className="mt-2 flex flex-wrap gap-6 text-sm text-gray-600">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="examMode"
+                checked={values.examMode === 'practice'}
+                onChange={() =>
+                  setValues((c) => ({ ...c, examMode: 'practice' }))
+                }
+              />
+              Serbest deneme
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="examMode"
+                checked={values.examMode === 'scheduled'}
+                onChange={() =>
+                  setValues((c) => ({ ...c, examMode: 'scheduled' }))
+                }
+              />
+              Canlı sınav (planlı)
+            </label>
+          </div>
+        </div>
+
+        {values.examMode === 'scheduled' && (
+          <div className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4">
+            <h2 className="text-sm font-medium text-gray-900">
+              Canlı sınav takvimi
+            </h2>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="scheduledDate" className={labelClass}>
+                  Sınav tarihi
+                </label>
+                <input
+                  id="scheduledDate"
+                  type="date"
+                  value={values.scheduledDate}
+                  onChange={(e) =>
+                    setValues((c) => ({ ...c, scheduledDate: e.target.value }))
+                  }
+                  className={inputClass}
+                />
+                {submitAttempted && fieldErrors.scheduledDate && (
+                  <p className={fieldErrorClass}>{fieldErrors.scheduledDate}</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="scheduledTime" className={labelClass}>
+                  Başlangıç saati (İstanbul)
+                </label>
+                <input
+                  id="scheduledTime"
+                  type="time"
+                  value={values.scheduledTime}
+                  onChange={(e) =>
+                    setValues((c) => ({ ...c, scheduledTime: e.target.value }))
+                  }
+                  className={inputClass}
+                />
+                {submitAttempted && fieldErrors.scheduledTime && (
+                  <p className={fieldErrorClass}>{fieldErrors.scheduledTime}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label htmlFor="lobbyOffset" className={labelClass}>
+                  Lobi açılışı (dk önce)
+                </label>
+                <input
+                  id="lobbyOffset"
+                  type="number"
+                  min={1}
+                  value={values.lobbyOffsetMinutes}
+                  onChange={(e) =>
+                    setValues((c) => ({
+                      ...c,
+                      lobbyOffsetMinutes: Number(e.target.value),
+                    }))
+                  }
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label htmlFor="lateEntry" className={labelClass}>
+                  Geç giriş (dk)
+                </label>
+                <input
+                  id="lateEntry"
+                  type="number"
+                  min={0}
+                  value={values.lateEntryMinutes}
+                  onChange={(e) =>
+                    setValues((c) => ({
+                      ...c,
+                      lateEntryMinutes: Number(e.target.value),
+                    }))
+                  }
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label htmlFor="resultsDelay" className={labelClass}>
+                  Sonuç gecikmesi (dk)
+                </label>
+                <input
+                  id="resultsDelay"
+                  type="number"
+                  min={0}
+                  disabled={values.resultsPublishMode === 'custom'}
+                  value={values.resultsDelayMinutes}
+                  onChange={(e) =>
+                    setValues((c) => ({
+                      ...c,
+                      resultsDelayMinutes: Number(e.target.value),
+                      resultsPublishMode: 'delay',
+                    }))
+                  }
+                  className={inputClass}
+                />
+                {submitAttempted && fieldErrors.resultsDelayMinutes && (
+                  <p className={fieldErrorClass}>{fieldErrors.resultsDelayMinutes}</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <span className={labelClass}>Sonuç açıklama zamanı</span>
+              <div className="mt-2 flex flex-wrap gap-6 text-sm text-gray-600">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="resultsPublishMode"
+                    checked={values.resultsPublishMode === 'delay'}
+                    onChange={() =>
+                      setValues((c) => ({
+                        ...c,
+                        resultsPublishMode: 'delay' as ResultsPublishMode,
+                      }))
+                    }
+                  />
+                  Sınav bitişinden sonra (otomatik)
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="resultsPublishMode"
+                    checked={values.resultsPublishMode === 'custom'}
+                    onChange={() => {
+                      if (schedulePreview) {
+                        fillCustomResultsFromPreview()
+                      } else {
+                        setValues((c) => ({
+                          ...c,
+                          resultsPublishMode: 'custom',
+                        }))
+                      }
+                    }}
+                  />
+                  Belirli tarih ve saat
+                </label>
+              </div>
+            </div>
+
+            {values.resultsPublishMode === 'custom' && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="resultsPublishDate" className={labelClass}>
+                    Sonuç tarihi
+                  </label>
+                  <input
+                    id="resultsPublishDate"
+                    type="date"
+                    value={values.resultsPublishDate}
+                    onChange={(e) =>
+                      setValues((c) => ({
+                        ...c,
+                        resultsPublishDate: e.target.value,
+                        resultsPublishMode: 'custom',
+                      }))
+                    }
+                    className={inputClass}
+                  />
+                  {submitAttempted && fieldErrors.resultsPublishDate && (
+                    <p className={fieldErrorClass}>
+                      {fieldErrors.resultsPublishDate}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="resultsPublishTime" className={labelClass}>
+                    Sonuç saati (İstanbul)
+                  </label>
+                  <input
+                    id="resultsPublishTime"
+                    type="time"
+                    value={values.resultsPublishTime}
+                    onChange={(e) =>
+                      setValues((c) => ({
+                        ...c,
+                        resultsPublishTime: e.target.value,
+                        resultsPublishMode: 'custom',
+                      }))
+                    }
+                    className={inputClass}
+                  />
+                  {submitAttempted && fieldErrors.resultsPublishTime && (
+                    <p className={fieldErrorClass}>
+                      {fieldErrors.resultsPublishTime}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {isEditing && (
+              <div className="flex flex-wrap items-center gap-3 border-t border-gray-200 pt-4">
+                {resultsAlreadyPublished ? (
+                  <p className="text-sm text-green-800">
+                    Sonuçlar yayınlandı
+                    {loadedResultsPublishAt
+                      ? ` · ${formatIstanbulDateTimeShort(loadedResultsPublishAt)}`
+                      : ''}
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={publishingResults || saving}
+                    onClick={handlePublishResultsNow}
+                    className="rounded-md border border-amber-600 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+                  >
+                    {publishingResults
+                      ? 'Yayınlanıyor…'
+                      : 'Sonuçları şimdi yayınla'}
+                  </button>
+                )}
+                {!resultsAlreadyPublished && (
+                  <p className="text-xs text-gray-500">
+                    Bekleme süresini atlayıp sonuçları anında açar.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {schedulePreview && (
+              <dl className="grid gap-2 text-sm text-gray-700 sm:grid-cols-2">
+                <div>
+                  <dt className="text-gray-500">Giriş alanı</dt>
+                  <dd>{formatIstanbulDateTimeShort(schedulePreview.lobby)}</dd>
+                </div>
+                <div>
+                  <dt className="text-gray-500">Sınav başlangıcı</dt>
+                  <dd>{formatIstanbulDateTimeShort(schedulePreview.start)}</dd>
+                </div>
+                <div>
+                  <dt className="text-gray-500">Son giriş</dt>
+                  <dd>{formatIstanbulDateTimeShort(schedulePreview.lateEntry)}</dd>
+                </div>
+                <div>
+                  <dt className="text-gray-500">Sınav bitişi</dt>
+                  <dd>{formatIstanbulDateTimeShort(schedulePreview.end)}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-gray-500">Sonuç açıklama</dt>
+                  <dd>{formatIstanbulDateTimeShort(schedulePreview.results)}</dd>
+                </div>
+              </dl>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="mb-10 border-t border-gray-200 pt-8">

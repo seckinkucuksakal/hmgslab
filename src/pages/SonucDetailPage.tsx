@@ -9,13 +9,20 @@ import {
   getRankingErrorMessage,
 } from '../lib/exam-ranking'
 import { RankingSummary } from '../components/exam/RankingSummary'
-import type { AttemptRanking } from '../types/exam-ranking'
+import { useServerClock } from '../hooks/useServerClock'
+import { computeExamScore, formatExamScore } from '../lib/exam-score'
+import {
+  formatCountdown,
+  formatIstanbulDateTimeShort,
+} from '../lib/istanbul-time'
+import type { AttemptRankingResult } from '../types/exam-ranking'
 import type {
-  AttemptReview,
+  AttemptReviewFull,
   ReviewFilter,
   ReviewQuestion,
 } from '../types/exam-review'
 import {
+  isReviewEmbargo,
   reviewFilterLabels,
   reviewStatusLabels,
 } from '../types/exam-review'
@@ -23,7 +30,7 @@ import {
 function SubjectPerformanceSection({
   subjects,
 }: {
-  subjects: AttemptReview['subjects']
+  subjects: AttemptReviewFull['subjects']
 }) {
   if (subjects.length === 0) return null
 
@@ -154,25 +161,56 @@ function ReviewQuestionView({ question }: { question: ReviewQuestion }) {
 
 export function SonucDetailPage() {
   const { attemptId } = useParams<{ attemptId: string }>()
-  const [review, setReview] = useState<AttemptReview | null>(null)
-  const [ranking, setRanking] = useState<AttemptRanking | null>(null)
+  const { serverNow } = useServerClock()
+  const [review, setReview] = useState<AttemptReviewFull | null>(null)
+  const [embargo, setEmbargo] = useState<
+    import('../types/exam-review').AttemptReviewEmbargo | null
+  >(null)
+  const [ranking, setRanking] = useState<AttemptRankingResult | null>(null)
   const [rankingError, setRankingError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<ReviewFilter>('all')
   const [currentIndex, setCurrentIndex] = useState(0)
 
+  const countdownSeconds = useMemo(() => {
+    if (!embargo?.results_publish_at || !serverNow) return 0
+    const target = new Date(embargo.results_publish_at).getTime()
+    return Math.max(0, Math.floor((target - serverNow.getTime()) / 1000))
+  }, [embargo?.results_publish_at, serverNow])
+
   useEffect(() => {
     if (!attemptId) return
 
-    getAttemptReview(attemptId)
-      .then(setReview)
-      .catch((err) => setError(getReviewErrorMessage(err)))
-      .finally(() => setLoading(false))
+    const load = () => {
+      getAttemptReview(attemptId)
+        .then((data) => {
+          if (isReviewEmbargo(data)) {
+            setEmbargo(data)
+            setReview(null)
+            return
+          }
+          setReview(data)
+          setEmbargo(null)
+        })
+        .catch((err) => setError(getReviewErrorMessage(err)))
+        .finally(() => setLoading(false))
 
-    getAttemptRanking(attemptId)
-      .then(setRanking)
-      .catch((err) => setRankingError(getRankingErrorMessage(err)))
+      getAttemptRanking(attemptId)
+        .then((data) => {
+          if ('embargo' in data && data.embargo) {
+            setRanking(null)
+            return
+          }
+          setRanking(data as AttemptRankingResult)
+        })
+        .catch((err) => setRankingError(getRankingErrorMessage(err)))
+    }
+
+    load()
+
+    const interval = window.setInterval(load, 15_000)
+    return () => window.clearInterval(interval)
   }, [attemptId])
 
   const filteredQuestions = useMemo(() => {
@@ -189,6 +227,38 @@ export function SonucDetailPage() {
 
   if (loading) {
     return <p className="text-sm text-gray-500">Sonuç yükleniyor…</p>
+  }
+
+  if (embargo) {
+    return (
+      <div>
+        <Link
+          to="/sonuclar"
+          className="text-sm text-gray-600 hover:text-gray-900"
+        >
+          ← Sonuçlar
+        </Link>
+        <h1 className="mt-4 text-2xl font-semibold text-gray-900">
+          {embargo.exam_title}
+        </h1>
+        <p className="mt-6 text-base text-gray-900">Sınavınız tamamlandı.</p>
+        <p className="mt-4 text-sm text-gray-600">
+          Sonuçlar{' '}
+          <span className="font-medium text-gray-900">
+            {formatIstanbulDateTimeShort(embargo.results_publish_at)}
+          </span>
+          {' '}tarihinde açıklanacaktır.
+        </p>
+        {countdownSeconds > 0 && (
+          <p className="mt-3 text-sm text-gray-500">
+            Kalan süre:{' '}
+            <span className="font-medium tabular-nums text-gray-700">
+              {formatCountdown(countdownSeconds)}
+            </span>
+          </p>
+        )}
+      </div>
+    )
   }
 
   if (error || !review) {
@@ -208,10 +278,10 @@ export function SonucDetailPage() {
   }
 
   const { attempt } = review
-  const completionPercent =
-    attempt.total_questions > 0
-      ? Math.round((attempt.correct_count / attempt.total_questions) * 100)
-      : 0
+  const completionScore = computeExamScore(
+    attempt.correct_count,
+    attempt.total_questions,
+  )
 
   return (
     <div>
@@ -260,7 +330,7 @@ export function SonucDetailPage() {
           </div>
         </dl>
         <p className="mt-2 text-xs text-gray-500">
-          {attempt.total_questions} soru · %{completionPercent} doğru
+          {attempt.total_questions} soru · {formatExamScore(completionScore)} puan
         </p>
       </header>
 

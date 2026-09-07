@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../../components/AuthLayout'
 import { PasswordInput } from '../../components/PasswordInput'
 import { supabase } from '../../lib/supabase'
+import { getAuthErrorMessage } from '../../lib/auth-errors'
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -18,6 +19,13 @@ export function RegisterPage() {
     event.preventDefault()
     setError(null)
 
+    const trimmedName = displayName.trim()
+
+    if (trimmedName.length < 2) {
+      setError('Görünen ad en az 2 karakter olmalıdır.')
+      return
+    }
+
     if (password !== confirmPassword) {
       setError('Şifreler eşleşmiyor.')
       return
@@ -26,17 +34,17 @@ export function RegisterPage() {
     setLoading(true)
 
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
       options: {
-        data: { display_name: displayName.trim() },
+        data: { display_name: trimmedName },
       },
     })
 
     setLoading(false)
 
     if (error) {
-      setError(error.message)
+      setError(getAuthErrorMessage(error))
       return
     }
 
@@ -86,7 +94,8 @@ export function RegisterPage() {
             autoComplete="name"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500"
+            maxLength={60}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500"
           />
         </div>
 
@@ -101,7 +110,7 @@ export function RegisterPage() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500"
           />
         </div>
 

@@ -2,10 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import {
+  ATTEMPT_RESULTS_PAGE_SIZE,
   fetchAttemptResults,
   getReviewErrorMessage,
 } from '../lib/exam-review'
+import { formatIstanbulDateTimeShort } from '../lib/istanbul-time'
+import { formatExamScore } from '../lib/exam-score'
 import type { AttemptResultListItem } from '../types/exam-review'
+import { isResultEmbargo } from '../types/exam-review'
 
 export function SonuclarPage() {
   const { user } = useAuth()
@@ -68,25 +72,43 @@ export function SonuclarPage() {
                     </span>
                     <span aria-hidden="true">·</span>
                     <span>{result.total_questions} soru</span>
-                    <span aria-hidden="true">·</span>
-                    <span>%{result.completion_percent} doğru</span>
+                    {!isResultEmbargo(result) && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>{formatExamScore(result.completion_percent)} puan</span>
+                      </>
+                    )}
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-gray-600">
-                    <span>{result.correct_count} doğru</span>
-                    <span>{result.incorrect_count} yanlış</span>
-                    <span>{result.blank_count} boş</span>
-                  </div>
+                  {isResultEmbargo(result) ? (
+                    <p className="mt-1 text-xs text-amber-800">
+                      Sonuçlar{' '}
+                      {formatIstanbulDateTimeShort(result.results_publish_at)}{' '}
+                      tarihinde açıklanacak
+                    </p>
+                  ) : (
+                    <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-gray-600">
+                      <span>{result.correct_count} doğru</span>
+                      <span>{result.incorrect_count} yanlış</span>
+                      <span>{result.blank_count} boş</span>
+                    </div>
+                  )}
                 </div>
                 <Link
                   to={`/sonuclar/${result.id}`}
                   className="text-sm text-gray-900 hover:underline"
                 >
-                  İncele
+                  {isResultEmbargo(result) ? 'Bekle' : 'İncele'}
                 </Link>
               </div>
             </li>
           ))}
         </ul>
+      )}
+
+      {!loading && results.length >= ATTEMPT_RESULTS_PAGE_SIZE && (
+        <p className="mt-4 text-xs text-gray-500">
+          En son {ATTEMPT_RESULTS_PAGE_SIZE} deneme gösteriliyor.
+        </p>
       )}
     </div>
   )

@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getAdminErrorMessage } from '../../lib/admin-errors'
-import { difficultyLabels } from '../../lib/question-form'
+import {
+  QUESTION_BANK_FETCH_LIMIT,
+  difficultyLabels,
+} from '../../lib/question-form'
 import type { Subject, Topic } from '../../types/question-bank'
 import type { Difficulty } from '../../types/question-bank'
 
@@ -33,6 +36,7 @@ export function AdminQuestionsPage() {
   const [topicFilter, setTopicFilter] = useState('')
   const [difficultyFilter, setDifficultyFilter] = useState('')
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
   const loadData = async () => {
     setLoading(true)
@@ -44,7 +48,8 @@ export function AdminQuestionsPage() {
         .select(
           'id, question_text, difficulty, is_active, created_at, subject_id, topic_id, subjects(name), topics(name)',
         )
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(QUESTION_BANK_FETCH_LIMIT),
       supabase
         .from('subjects')
         .select('id, name, slug, sort_order, is_active, created_at')
@@ -109,6 +114,9 @@ export function AdminQuestionsPage() {
     event.preventDefault()
     event.stopPropagation()
 
+    if (togglingId) return
+    setTogglingId(question.id)
+
     const { error: updateError } = await supabase
       .from('questions')
       .update({ is_active: !question.is_active })
@@ -116,10 +124,12 @@ export function AdminQuestionsPage() {
 
     if (updateError) {
       setError(getAdminErrorMessage(updateError))
+      setTogglingId(null)
       return
     }
 
     await loadData()
+    setTogglingId(null)
   }
 
   return (
@@ -243,14 +253,26 @@ export function AdminQuestionsPage() {
                 <button
                   type="button"
                   onClick={(event) => handleArchiveToggle(event, question)}
-                  className="text-gray-600 hover:underline"
+                  disabled={togglingId !== null}
+                  className="text-gray-600 hover:underline disabled:opacity-50"
                 >
-                  {question.is_active ? 'Arşivle' : 'Aktifleştir'}
+                  {togglingId === question.id
+                    ? 'Kaydediliyor…'
+                    : question.is_active
+                      ? 'Arşivle'
+                      : 'Aktifleştir'}
                 </button>
               </div>
             </li>
           ))}
         </ul>
+      )}
+
+      {!loading && questions.length >= QUESTION_BANK_FETCH_LIMIT && (
+        <p className="mt-4 text-xs text-gray-500">
+          En yeni {QUESTION_BANK_FETCH_LIMIT} soru yüklendi. Daha eski soruları
+          görmek için ders ve konu filtrelerini kullanın.
+        </p>
       )}
     </div>
   )

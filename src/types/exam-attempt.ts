@@ -1,3 +1,5 @@
+import type { ExamMode } from './exam'
+
 export type ExamAttemptStatus = 'in_progress' | 'submitted' | 'expired'
 
 export type ExamAttempt = {
@@ -19,10 +21,14 @@ export type AttemptSync = {
   id: string
   exam_id: string
   exam_title: string
+  exam_mode?: ExamMode
   status: ExamAttemptStatus
   started_at: string
   submitted_at: string | null
   duration_minutes_snapshot: number
+  scheduled_end_at?: string | null
+  results_publish_at?: string | null
+  results_available?: boolean
   remaining_seconds: number
   correct_count: number | null
   incorrect_count: number | null
@@ -32,9 +38,12 @@ export type AttemptSync = {
 
 export type AttemptSubmitResult = {
   status: ExamAttemptStatus
-  correct_count: number
-  incorrect_count: number
-  blank_count: number
+  exam_mode?: ExamMode
+  results_available?: boolean
+  results_publish_at?: string | null
+  correct_count: number | null
+  incorrect_count: number | null
+  blank_count: number | null
   total_questions: number
 }
 
@@ -59,6 +68,17 @@ export type ExamSessionQuestion = {
   selected_option_id: string | null
 }
 
+export type ExamSession = {
+  attempt_id: string
+  status: ExamAttemptStatus
+  exam_mode: ExamMode
+  exam_title: string
+  exam_description: string | null
+  scheduled_end_at: string | null
+  remaining_seconds: number
+  questions: ExamSessionQuestion[]
+}
+
 export function formatRemainingTime(totalSeconds: number): string {
   const seconds = Math.max(0, totalSeconds)
   const hours = Math.floor(seconds / 3600)
@@ -70,4 +90,13 @@ export function formatRemainingTime(totalSeconds: number): string {
   }
 
   return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+}
+
+export function isAttemptReviewable(
+  sync: AttemptSync,
+  submit?: AttemptSubmitResult,
+): boolean {
+  const resultsAvailable =
+    submit?.results_available ?? sync.results_available ?? true
+  return resultsAvailable
 }

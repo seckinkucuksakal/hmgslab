@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { UpcomingExamCountdown } from '../components/home/UpcomingExamCountdown'
 import { useAuth } from '../hooks/useAuth'
 import { useProfile } from '../hooks/useProfile'
-import {
-  fetchRecentAttemptResults,
-} from '../lib/exam-review'
+import { fetchRecentAttemptResults } from '../lib/exam-review'
+import { formatExamScore } from '../lib/exam-score'
+import { formatIstanbulDateTimeShort } from '../lib/istanbul-time'
 import type { AttemptResultListItem } from '../types/exam-review'
+import { isResultEmbargo } from '../types/exam-review'
 
 export function HomePage() {
   const { user } = useAuth()
@@ -24,16 +26,18 @@ export function HomePage() {
       .finally(() => setResultsLoading(false))
   }, [user])
 
+  const publishedResults = recentResults.filter((result) => !isResultEmbargo(result))
+
   const recentAverage =
-    recentResults.length > 0
+    publishedResults.length > 0
       ? Math.round(
-          (recentResults.reduce(
+          (publishedResults.reduce(
             (sum, result) => sum + result.completion_percent,
             0,
           ) /
-            recentResults.length) *
-            10,
-        ) / 10
+            publishedResults.length) *
+            100,
+        ) / 100
       : null
 
   if (profileLoading) {
@@ -42,38 +46,34 @@ export function HomePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-gray-900">
-        Hoş geldin, {displayName}
-      </h1>
-      <p className="mt-2 text-sm text-gray-600">
-        HMGS denemelerine buradan devam edebilirsin.
-      </p>
-
-      {recentAverage !== null && (
-        <p className="mt-3 text-sm text-gray-600">
-          Son {recentResults.length} denemede ortalama{' '}
-          <Link to="/performans" className="font-medium text-gray-900 hover:underline">
-            %{recentAverage.toLocaleString('tr-TR')} doğru
-          </Link>
-        </p>
-      )}
-
-      <div className="mt-8">
-        <Link
-          to="/denemeler"
-          className="inline-block rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          Deneme Çöz
-        </Link>
+      <div className="text-center sm:text-left">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-slate-100">
+          Hoş geldin, {displayName}
+        </h1>
+        {recentAverage !== null && (
+          <p className="mt-2 text-sm text-gray-600 dark:text-slate-400">
+            Son {publishedResults.length} denemede ortalama{' '}
+            <Link
+              to="/performans"
+              className="font-medium text-gray-900 hover:underline dark:text-slate-100"
+            >
+              {formatExamScore(recentAverage)} puan
+            </Link>
+          </p>
+        )}
       </div>
 
-      <section className="mt-10 border-t border-gray-200 pt-8">
+      {user && <UpcomingExamCountdown userId={user.id} />}
+
+      <section className="border-t border-gray-200 pt-8 dark:border-slate-800">
         <div className="flex items-baseline justify-between gap-4">
-          <h2 className="text-base font-medium text-gray-900">Son Denemeler</h2>
+          <h2 className="text-base font-medium text-gray-900 dark:text-slate-100">
+            Son Denemeler
+          </h2>
           {recentResults.length > 0 && (
             <Link
               to="/sonuclar"
-              className="text-sm text-gray-600 hover:text-gray-900"
+              className="text-sm text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-100"
             >
               Tümünü gör
             </Link>
@@ -83,29 +83,37 @@ export function HomePage() {
         {resultsLoading ? (
           <p className="mt-3 text-sm text-gray-500">Yükleniyor…</p>
         ) : recentResults.length === 0 ? (
-          <p className="mt-3 text-sm text-gray-600">
+          <p className="mt-3 text-sm text-gray-600 dark:text-slate-400">
             Henüz tamamladığınız bir deneme bulunmuyor.
           </p>
         ) : (
-          <ul className="mt-4 divide-y divide-gray-200 border-y border-gray-200">
+          <ul className="mt-4 divide-y divide-gray-200 border-y border-gray-200 dark:divide-slate-800 dark:border-slate-800">
             {recentResults.map((result) => (
               <li key={result.id} className="py-3">
                 <Link
                   to={`/sonuclar/${result.id}`}
                   className="block hover:opacity-80"
                 >
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
                     {result.exam_title}
                   </p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {result.submitted_at
-                      ? new Date(result.submitted_at).toLocaleDateString(
-                          'tr-TR',
-                        )
-                      : '—'}{' '}
-                    · {result.correct_count} doğru · {result.incorrect_count}{' '}
-                    yanlış · {result.blank_count} boş
-                  </p>
+                  {isResultEmbargo(result) ? (
+                    <p className="mt-1 text-xs text-amber-800 dark:text-amber-300">
+                      Sonuçlar{' '}
+                      {formatIstanbulDateTimeShort(result.results_publish_at)}{' '}
+                      tarihinde açıklanacak
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                      {result.submitted_at
+                        ? new Date(result.submitted_at).toLocaleDateString(
+                            'tr-TR',
+                          )
+                        : '—'}{' '}
+                      · {result.correct_count} doğru · {result.incorrect_count}{' '}
+                      yanlış · {result.blank_count} boş
+                    </p>
+                  )}
                 </Link>
               </li>
             ))}

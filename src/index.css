@@ -1,5 +1,236 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 body {
   margin: 0;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  .dark body {
+    @apply bg-slate-950 text-slate-100;
+  }
+}
+
+@layer utilities {
+  /* Surfaces */
+  .dark .bg-gray-50 {
+    @apply bg-slate-950;
+  }
+
+  .dark .bg-white {
+    @apply bg-slate-900;
+  }
+
+  .dark .bg-white\/60 {
+    background-color: color-mix(in srgb, var(--color-slate-900) 60%, transparent);
+  }
+
+  .dark .bg-white\/85 {
+    background-color: color-mix(in srgb, var(--color-slate-900) 85%, transparent);
+  }
+
+  .dark .bg-white\/95 {
+    background-color: color-mix(in srgb, var(--color-slate-900) 95%, transparent);
+  }
+
+  .dark .bg-gray-100 {
+    @apply bg-slate-800;
+  }
+
+  .dark .bg-gray-100\/80 {
+    background-color: color-mix(in srgb, var(--color-slate-800) 80%, transparent);
+  }
+
+  .dark .bg-gray-200 {
+    @apply bg-slate-700;
+  }
+
+  .dark .bg-gray-50\/95 {
+    background-color: color-mix(in srgb, var(--color-slate-950) 95%, transparent);
+  }
+
+  /* Typography */
+  .dark .text-gray-900 {
+    @apply text-slate-100;
+  }
+
+  .dark .text-gray-800 {
+    @apply text-slate-200;
+  }
+
+  .dark .text-gray-700 {
+    @apply text-slate-300;
+  }
+
+  .dark .text-gray-600 {
+    @apply text-slate-400;
+  }
+
+  .dark .text-gray-500 {
+    @apply text-slate-400;
+  }
+
+  .dark .text-gray-400 {
+    @apply text-slate-500;
+  }
+
+  .dark .text-gray-300 {
+    @apply text-slate-600;
+  }
+
+  /* Borders & dividers */
+  .dark .border-gray-200,
+  .dark .border-gray-200\/60,
+  .dark .border-gray-200\/70,
+  .dark .border-gray-200\/80 {
+    @apply border-slate-800;
+  }
+
+  .dark .border-gray-300 {
+    @apply border-slate-700;
+  }
+
+  .dark .border-gray-900 {
+    @apply border-blue-500;
+  }
+
+  .dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--color-slate-800);
+  }
+
+  .dark .divide-y.divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--color-slate-800);
+  }
+
+  .dark .ring-gray-200\/70 {
+    @apply ring-slate-700/70;
+  }
+
+  .dark .ring-black\/5 {
+    @apply ring-white/5;
+  }
+
+  /* Interactive surfaces */
+  .dark .hover\:bg-gray-50:hover {
+    @apply bg-slate-800;
+  }
+
+  .dark .hover\:bg-gray-100:hover {
+    @apply bg-slate-800;
+  }
+
+  .dark .hover\:bg-white\/60:hover {
+    background-color: color-mix(in srgb, var(--color-slate-900) 60%, transparent);
+  }
+
+  .dark .hover\:text-gray-900:hover {
+    @apply text-slate-100;
+  }
+
+  .dark .hover\:border-gray-300:hover {
+    @apply border-slate-600;
+  }
+
+  .dark .group-hover\:bg-gray-800:is(:where(.group):hover *) {
+    @apply bg-blue-500;
+  }
+
+  /* Primary actions — canlı mavi in dark mode */
+  .dark .bg-gray-900 {
+    @apply bg-blue-600;
+  }
+
+  .dark .hover\:bg-gray-800:hover {
+    @apply bg-blue-500;
+  }
+
+  /* Progress bars & chart fills */
+  .dark .rounded-full.bg-gray-800,
+  .dark .rounded-full.bg-gray-800.h-full,
+  .dark .h-full.rounded-full.bg-gray-800 {
+    @apply bg-blue-400;
+  }
+
+  /* Form controls */
+  .dark input:not([type='checkbox']):not([type='radio']),
+  .dark textarea,
+  .dark select {
+    @apply border-slate-700 bg-slate-900 text-slate-100;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    @apply text-slate-500;
+  }
+
+  .dark input:focus,
+  .dark textarea:focus,
+  .dark select:focus {
+    @apply border-slate-500 ring-slate-500;
+  }
+
+  /* Status colors */
+  .dark .bg-red-50 {
+    @apply bg-red-950/40;
+  }
+
+  .dark .text-red-600,
+  .dark .text-red-700,
+  .dark .text-red-800 {
+    @apply text-red-400;
+  }
+
+  .dark .bg-green-50 {
+    @apply bg-green-950/40;
+  }
+
+  .dark .text-green-700,
+  .dark .text-green-800 {
+    @apply text-green-400;
+  }
+
+  .dark .bg-amber-50 {
+    @apply bg-amber-950/40;
+  }
+
+  .dark .text-amber-800,
+  .dark .text-amber-900 {
+    @apply text-amber-300;
+  }
+
+  .dark .border-amber-600 {
+    @apply border-amber-700;
+  }
+
+  .dark .bg-amber-100 {
+    @apply bg-amber-950/50;
+  }
+
+  /* Exam review states */
+  .dark .text-green-800 {
+    @apply text-green-400;
+  }
+
+  .dark .text-red-800 {
+    @apply text-red-400;
+  }
+
+  /* Cookie consent & overlays */
+  .dark .shadow-lg,
+  .dark .shadow-sm {
+    @apply shadow-black/30;
+  }
+
+  .dark .backdrop-blur-xl {
+    @apply backdrop-brightness-75;
+  }
 }
