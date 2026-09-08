@@ -4,6 +4,7 @@ import { AuthLayout } from '../../components/AuthLayout'
 import { supabase } from '../../lib/supabase'
 import { getAuthErrorMessage } from '../../lib/auth-errors'
 import { routes } from '../../lib/routes'
+import { authResetPasswordRedirectTo } from '../../lib/site-url'
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -17,7 +18,7 @@ export function ForgotPasswordPage() {
     setLoading(true)
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}${routes.sifreSifirla}`,
+      redirectTo: authResetPasswordRedirectTo,
     })
 
     setLoading(false)

@@ -57,10 +57,9 @@ These cannot be applied from migrations and must be set once per environment.
      - `https://hmgSlab.com/**`
      - `http://localhost:5173/**` (local development only)
 
-   Password reset uses `window.location.origin + '/sifre-sifirla'`, so no
-   localhost URL is hard-coded anywhere; the redirect is derived from wherever
-   the app is actually served. Both `/sifre-sifirla` and the email
-   confirmation landing route are covered by the wildcard entries above.
+   Password reset redirect uses `VITE_SITE_URL + '/sifre-sifirla'` (see
+   `authResetPasswordRedirectTo`). Redirect URL allow list must include
+   `https://hmgslab.com/**` and `http://localhost:5173/**`.
 
 2. **Authentication → Providers → Email**
    - Enable *Confirm email* so new accounts must verify ownership.
@@ -74,18 +73,24 @@ These cannot be applied from migrations and must be set once per environment.
      `{{ .ConfirmationURL }}` or `{{ .SiteURL }}` — they inject redirect links.
    - Suggested subject: `HMGSlab — E-posta doğrulama kodunuz`
 
-4. **Authentication → Rate limits**
+4. **Authentication → Email Templates → Reset password**
+   - Copy the HTML from `supabase/email-templates/reset-password.html` into the
+     dashboard editor. This flow uses a link (`{{ .ConfirmationURL }}`) to
+     `/sifre-sifirla`.
+   - Suggested subject: `HMGSlab — Şifre sıfırlama bağlantınız`
+
+5. **Authentication → Rate limits**
    - Keep the default per-IP limits for sign-in, sign-up, OTP and password
      recovery. These already cover credential stuffing, registration spam and
      password-reset abuse; see "Abuse vectors" below.
 
-5. **Authentication → Policies**
+6. **Authentication → Policies**
    - Minimum password length 8 (matches the client-side `minLength`).
    - Enable *Leaked password protection*. It is off by default and checks new
      passwords against HaveIBeenPwned, which is the cheapest available defence
      against credential stuffing.
 
-6. **Project Settings → Database → Backups**
+7. **Project Settings → Database → Backups**
    - Verify the backup schedule for the current plan (see below).
 
 ### Granting admin access

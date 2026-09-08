@@ -18,3 +18,5 @@ export function authEmailRedirect(path: string): string {
 export const AUTH_SIGNUP_OTP_LENGTH = 8
 
 export const authSignupRedirectTo = authEmailRedirect(routes.kayit)
+
+export const authResetPasswordRedirectTo = authEmailRedirect(routes.sifreSifirla)
