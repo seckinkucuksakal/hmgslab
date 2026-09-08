@@ -15,7 +15,8 @@ const messagesByCode: Record<string, string> = {
   user_already_exists: 'Bu e-posta adresi zaten kayıtlı.',
   weak_password: 'Şifre çok zayıf. En az 8 karakter kullanın.',
   same_password: 'Yeni şifre eskisiyle aynı olamaz.',
-  otp_expired: 'Bağlantının süresi dolmuş. Yeni bir bağlantı isteyin.',
+  otp_expired: 'Doğrulama kodunun süresi dolmuş. Yeni kod isteyin.',
+  invalid_otp: 'Doğrulama kodu hatalı. Lütfen tekrar deneyin.',
   over_email_send_rate_limit:
     'Çok fazla e-posta talebi gönderildi. Lütfen birkaç dakika bekleyin.',
   over_request_rate_limit:
@@ -44,8 +45,9 @@ const messagePatterns: [RegExp, string][] = [
   ],
   [
     /token has expired|invalid token|expired/i,
-    'Bağlantının süresi dolmuş. Yeni bir bağlantı isteyin.',
+    'Doğrulama kodunun süresi dolmuş. Yeni kod isteyin.',
   ],
+  [/invalid otp|otp.*invalid/i, 'Doğrulama kodu hatalı. Lütfen tekrar deneyin.'],
   [
     /failed to fetch|network|networkerror/i,
     'Bağlantı kurulamadı. İnternet bağlantınızı kontrol edin.',

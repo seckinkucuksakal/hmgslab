@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useProfile } from '../hooks/useProfile'
+import { routes } from '../lib/routes'
 
 type AdminRouteProps = {
   children: ReactNode
@@ -18,7 +19,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
   }
 
   if (!isAdmin) {
-    return <Navigate to="/" replace />
+    return <Navigate to={routes.home} replace />
   }
 
   return children

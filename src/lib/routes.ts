@@ -1,0 +1,28 @@
+/** Uygulama URL yolları — tek kaynak */
+export const routes = {
+  landing: '/',
+  home: '/home',
+  denemeler: '/denemeler',
+  denemeLobi: (examId: string) => `/denemeler/${examId}/lobi`,
+  denemeSiralama: (examId: string) => `/denemeler/${examId}/siralama`,
+  sonuclar: '/sonuclar',
+  sonucDetay: (attemptId: string) => `/sonuclar/${attemptId}`,
+  performans: '/performans',
+  profil: '/profil',
+  sinav: (attemptId: string) => `/sinav/${attemptId}`,
+  sinavTamamlandi: (attemptId: string) => `/sinav/${attemptId}/tamamlandi`,
+  sinavSonuc: (attemptId: string) => `/sinav/${attemptId}/sonuc`,
+  giris: '/giris',
+  kayit: '/kayit',
+  sifremiUnuttum: '/sifremi-unuttum',
+  sifreSifirla: '/sifre-sifirla',
+  yonetim: '/yonetim',
+  yonetimSorular: '/yonetim/sorular',
+  yonetimSoruYeni: '/yonetim/sorular/yeni',
+  yonetimSoruDuzenle: (questionId: string) =>
+    `/yonetim/sorular/${questionId}/duzenle`,
+  yonetimDersler: '/yonetim/dersler',
+  yonetimDenemeler: '/yonetim/denemeler',
+  yonetimDenemeYeni: '/yonetim/denemeler/yeni',
+  yonetimDenemeDuzenle: (examId: string) => `/yonetim/denemeler/${examId}`,
+} as const

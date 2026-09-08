@@ -56,9 +56,9 @@ These cannot be applied from migrations and must be set once per environment.
      - `https://hmgSlab.com/**`
      - `http://localhost:5173/**` (local development only)
 
-   Password reset uses `window.location.origin + '/reset-password'`, so no
+   Password reset uses `window.location.origin + '/sifre-sifirla'`, so no
    localhost URL is hard-coded anywhere; the redirect is derived from wherever
-   the app is actually served. Both `/reset-password` and the email
+   the app is actually served. Both `/sifre-sifirla` and the email
    confirmation landing route are covered by the wildcard entries above.
 
 2. **Authentication → Providers → Email**
@@ -66,18 +66,31 @@ These cannot be applied from migrations and must be set once per environment.
    - Configure a custom SMTP sender before launch. The built-in Supabase SMTP
      is heavily rate limited and is not intended for production traffic.
 
-3. **Authentication → Rate limits**
+3. **Authentication → Email Templates → Confirm sign up**
+   - Registration verifies ownership with a 6-digit code on the same page, not
+     a confirmation link. The template must include `{{ .Token }}`, for example:
+
+   ```html
+   <h2>E-posta adresinizi doğrulayın</h2>
+   <p>Kayıt işlemini tamamlamak için bu kodu girin:</p>
+   <p><strong>{{ .Token }}</strong></p>
+   ```
+
+   Remove or de-emphasise the confirmation URL so users receive a code, not a
+   magic link.
+
+4. **Authentication → Rate limits**
    - Keep the default per-IP limits for sign-in, sign-up, OTP and password
      recovery. These already cover credential stuffing, registration spam and
      password-reset abuse; see "Abuse vectors" below.
 
-4. **Authentication → Policies**
+5. **Authentication → Policies**
    - Minimum password length 8 (matches the client-side `minLength`).
    - Enable *Leaked password protection*. It is off by default and checks new
      passwords against HaveIBeenPwned, which is the cheapest available defence
      against credential stuffing.
 
-5. **Project Settings → Database → Backups**
+6. **Project Settings → Database → Backups**
    - Verify the backup schedule for the current plan (see below).
 
 ### Granting admin access

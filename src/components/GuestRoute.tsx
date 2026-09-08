@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { routes } from '../lib/routes'
 
 type GuestRouteProps = {
   children: ReactNode
@@ -18,7 +19,7 @@ export function GuestRoute({ children }: GuestRouteProps) {
   }
 
   if (session) {
-    return <Navigate to="/" replace />
+    return <Navigate to={routes.home} replace />
   }
 
   return children

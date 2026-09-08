@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getAdminErrorMessage } from '../../lib/admin-errors'
+import { routes } from '../../lib/routes'
 import {
   QUESTION_BANK_FETCH_LIMIT,
   difficultyLabels,
@@ -142,7 +143,7 @@ export function AdminQuestionsPage() {
           </p>
         </div>
         <Link
-          to="/admin/sorular/yeni"
+          to={routes.yonetimSoruYeni}
           className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
         >
           Yeni Soru
@@ -224,7 +225,7 @@ export function AdminQuestionsPage() {
           {filteredQuestions.map((question) => (
             <li key={question.id}>
               <Link
-                to={`/admin/sorular/${question.id}/duzenle`}
+                to={routes.yonetimSoruDuzenle(question.id)}
                 className="group block py-4 transition-colors hover:bg-gray-50/80"
               >
                 <p className="line-clamp-2 text-sm leading-relaxed text-gray-900 group-hover:text-gray-950">
@@ -244,7 +245,7 @@ export function AdminQuestionsPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    navigate(`/admin/sorular/${question.id}/duzenle`)
+                    navigate(routes.yonetimSoruDuzenle(question.id))
                   }
                   className="text-gray-900 hover:underline"
                 >

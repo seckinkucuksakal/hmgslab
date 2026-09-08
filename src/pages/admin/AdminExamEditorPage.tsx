@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getAdminErrorMessage } from '../../lib/admin-errors'
+import { routes } from '../../lib/routes'
 import {
   adminPublishExamResults,
   istanbulLocalToTimestamptz,
@@ -522,7 +523,7 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
     }
 
     if (!isEditing && targetExamId) {
-      navigate(`/admin/denemeler/${targetExamId}`, { replace: true })
+      navigate(routes.yonetimDenemeDuzenle(targetExamId), { replace: true })
     }
   }, [examId, isEditing, navigate, schedulePreview, selectedIds, values])
 
@@ -1098,7 +1099,7 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
           {saving ? 'Kaydediliyor…' : 'Kaydet'}
         </button>
         <Link
-          to="/admin/denemeler"
+          to={routes.yonetimDenemeler}
           className="text-sm text-gray-600 hover:text-gray-900"
         >
           Listeye dön

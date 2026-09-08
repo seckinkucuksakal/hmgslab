@@ -26,6 +26,7 @@ import { ExamLobbyPage } from './pages/exam/ExamLobbyPage'
 import { ExamResultPage } from './pages/exam/ExamResultPage'
 import { ExamTakePage } from './pages/exam/ExamTakePage'
 import { HomePage } from './pages/HomePage'
+import { LandingPage } from './pages/LandingPage'
 import { PerformansPage } from './pages/PerformansPage'
 import { ProfilPage } from './pages/ProfilPage'
 import { SonuclarPage } from './pages/SonuclarPage'
@@ -37,6 +38,7 @@ import {
   KullanimKosullariPage,
   KvkkPage,
 } from './pages/legal/LegalPages'
+import { routes } from './lib/routes'
 
 function App() {
   return (
@@ -45,6 +47,8 @@ function App() {
       <AuthProvider>
         <ServerClockProvider>
           <Routes>
+          <Route path="/" element={<LandingPage />} />
+
           <Route
             element={
               <ProtectedRoute>
@@ -52,7 +56,7 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="/" element={<HomePage />} />
+            <Route path={routes.home} element={<HomePage />} />
             <Route path="/denemeler" element={<DenemelerPage />} />
             <Route path="/denemeler/:examId/lobi" element={<ExamLobbyPage />} />
             <Route
@@ -84,7 +88,7 @@ function App() {
           </Route>
 
           <Route
-            path="/admin"
+            path={routes.yonetim}
             element={
               <ProtectedRoute>
                 <AdminRoute>
@@ -93,7 +97,7 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/admin/sorular" replace />} />
+            <Route index element={<Navigate to={routes.yonetimSorular} replace />} />
             <Route path="sorular" element={<AdminQuestionsPage />} />
             <Route path="sorular/yeni" element={<AdminNewQuestionPage />} />
             <Route
@@ -107,7 +111,7 @@ function App() {
           </Route>
 
           <Route
-            path="/login"
+            path={routes.giris}
             element={
               <GuestRoute>
                 <LoginPage />
@@ -115,7 +119,7 @@ function App() {
             }
           />
           <Route
-            path="/register"
+            path={routes.kayit}
             element={
               <GuestRoute>
                 <RegisterPage />
@@ -123,14 +127,14 @@ function App() {
             }
           />
           <Route
-            path="/forgot-password"
+            path={routes.sifremiUnuttum}
             element={
               <GuestRoute>
                 <ForgotPasswordPage />
               </GuestRoute>
             }
           />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path={routes.sifreSifirla} element={<ResetPasswordPage />} />
 
           <Route path="/kvkk" element={<KvkkPage />} />
           <Route path="/gizlilik" element={<GizlilikPage />} />

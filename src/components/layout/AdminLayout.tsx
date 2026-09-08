@@ -1,11 +1,12 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { ThemeToggle } from '../ThemeToggle'
 import { SITE_NAME } from '../../lib/brand'
+import { routes } from '../../lib/routes'
 
 const navItems = [
-  { to: '/admin/sorular', label: 'Sorular', end: true },
-  { to: '/admin/denemeler', label: 'Denemeler', end: true },
-  { to: '/admin/dersler', label: 'Dersler ve Konular', end: true },
+  { to: routes.yonetimSorular, label: 'Sorular', end: true },
+  { to: routes.yonetimDenemeler, label: 'Denemeler', end: true },
+  { to: routes.yonetimDersler, label: 'Dersler ve Konular', end: true },
 ]
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -19,7 +20,7 @@ export function AdminLayout() {
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
           <div className="flex items-center gap-6">
-            <Link to="/admin/sorular" className="text-lg font-semibold text-gray-900">
+            <Link to={routes.yonetimSorular} className="text-lg font-semibold text-gray-900">
               {SITE_NAME} Admin
             </Link>
             <nav className="hidden items-center gap-5 sm:flex">
@@ -37,7 +38,7 @@ export function AdminLayout() {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle compact />
-            <Link to="/" className="text-sm text-gray-600 hover:text-gray-900">
+            <Link to={routes.home} className="text-sm text-gray-600 hover:text-gray-900">
               Uygulamaya dön
             </Link>
           </div>

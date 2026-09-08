@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { routes } from '../lib/routes'
 
 type ProtectedRouteProps = {
   children: ReactNode
@@ -19,7 +20,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!session) {
-    return <Navigate to="/login" state={{ from: location }} replace />
+    return <Navigate to={routes.giris} state={{ from: location }} replace />
   }
 
   return children

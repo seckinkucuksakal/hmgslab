@@ -5,12 +5,13 @@ import { useProfile } from '../../hooks/useProfile'
 import { NavbarClock, NavbarUserButton } from './NavbarClock'
 import { ThemeToggle } from '../ThemeToggle'
 import { SITE_MARK, SITE_NAME } from '../../lib/brand'
+import { routes } from '../../lib/routes'
 
 const navItems: { to: string; label: string; end?: boolean }[] = [
-  { to: '/', label: 'Ana Sayfa', end: true },
-  { to: '/denemeler', label: 'Denemeler' },
-  { to: '/sonuclar', label: 'Sonuçlar' },
-  { to: '/performans', label: 'Performans' },
+  { to: routes.home, label: 'Ana Sayfa', end: true },
+  { to: routes.denemeler, label: 'Denemeler' },
+  { to: routes.sonuclar, label: 'Sonuçlar' },
+  { to: routes.performans, label: 'Performans' },
 ]
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -55,7 +56,7 @@ export function AppHeader() {
     setSigningOut(true)
     setMenuOpen(false)
     await signOut()
-    navigate('/login', { replace: true })
+    navigate(routes.giris, { replace: true })
   }
 
   return (
@@ -63,7 +64,7 @@ export function AppHeader() {
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-5">
           <Link
-            to="/"
+            to={routes.home}
             className="group flex shrink-0 items-center gap-2.5"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gray-900 text-[10px] font-bold text-white shadow-sm transition group-hover:bg-gray-800">
@@ -86,7 +87,7 @@ export function AppHeader() {
               </NavLink>
             ))}
             {isAdmin && (
-              <NavLink to="/admin" className={navLinkClass}>
+              <NavLink to={routes.yonetim} className={navLinkClass}>
                 Admin
               </NavLink>
             )}
@@ -131,7 +132,7 @@ export function AppHeader() {
             {menuOpen && (
               <div className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-xl border border-gray-200/80 bg-white py-1 shadow-lg ring-1 ring-black/5">
                 <Link
-                  to="/profil"
+                  to={routes.profil}
                   onClick={() => setMenuOpen(false)}
                   className="block px-3.5 py-2.5 text-sm text-gray-700 transition hover:bg-gray-50"
                 >
@@ -172,7 +173,7 @@ export function AppHeader() {
             {isAdmin && (
               <li>
                 <NavLink
-                  to="/admin"
+                  to={routes.yonetim}
                   onClick={() => setMobileNavOpen(false)}
                   className={mobileNavLinkClass}
                 >
@@ -191,7 +192,7 @@ export function AppHeader() {
             {menuOpen && (
               <div className="mt-2 overflow-hidden rounded-xl border border-gray-200/80 bg-white py-1 shadow-sm">
                 <Link
-                  to="/profil"
+                  to={routes.profil}
                   onClick={() => {
                     setMenuOpen(false)
                     setMobileNavOpen(false)

@@ -5,6 +5,7 @@ import { PasswordInput } from '../../components/PasswordInput'
 import { supabase } from '../../lib/supabase'
 import { getAuthErrorMessage } from '../../lib/auth-errors'
 import { useAuth } from '../../hooks/useAuth'
+import { routes } from '../../lib/routes'
 
 export function ResetPasswordPage() {
   const navigate = useNavigate()
@@ -34,7 +35,7 @@ export function ResetPasswordPage() {
       return
     }
 
-    navigate('/', { replace: true })
+    navigate(routes.home, { replace: true })
   }
 
   if (authLoading) {
@@ -54,7 +55,7 @@ export function ResetPasswordPage() {
         </p>
         <p className="mt-4 text-center text-sm">
           <Link
-            to="/forgot-password"
+            to={routes.sifremiUnuttum}
             className="font-medium text-gray-900 hover:underline"
           >
             Şifremi unuttum

@@ -8,6 +8,7 @@ import {
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getAdminErrorMessage } from '../../lib/admin-errors'
+import { routes } from '../../lib/routes'
 import type { Subject, Topic } from '../../types/question-bank'
 import {
   difficultyLabels,
@@ -481,7 +482,7 @@ export function AdminQuestionForm({ questionId }: AdminQuestionFormProps) {
             </button>
           )}
           <Link
-            to="/admin/sorular"
+            to={routes.yonetimSorular}
             className="text-sm text-gray-600 hover:text-gray-900"
           >
             Listeye dön

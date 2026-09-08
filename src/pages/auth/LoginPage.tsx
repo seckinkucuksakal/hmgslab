@@ -4,13 +4,14 @@ import { AuthLayout } from '../../components/AuthLayout'
 import { PasswordInput } from '../../components/PasswordInput'
 import { supabase } from '../../lib/supabase'
 import { getAuthErrorMessage } from '../../lib/auth-errors'
+import { routes } from '../../lib/routes'
 
 export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const from =
     (location.state as { from?: { pathname: string } } | null)?.from
-      ?.pathname ?? '/'
+      ?.pathname ?? routes.home
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -80,13 +81,13 @@ export function LoginPage() {
 
       <div className="mt-4 space-y-2 text-center text-sm">
         <p>
-          <Link to="/forgot-password" className="text-gray-600 hover:underline">
+          <Link to={routes.sifremiUnuttum} className="text-gray-600 hover:underline">
             Şifremi unuttum
           </Link>
         </p>
         <p className="text-gray-600">
           Hesabın yok mu?{' '}
-          <Link to="/register" className="font-medium text-gray-900 hover:underline">
+          <Link to={routes.kayit} className="font-medium text-gray-900 hover:underline">
             Kayıt ol
           </Link>
         </p>

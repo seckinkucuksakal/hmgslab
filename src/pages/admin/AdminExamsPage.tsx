@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getAdminErrorMessage } from '../../lib/admin-errors'
+import { routes } from '../../lib/routes'
 
 type ExamRow = {
   id: string
@@ -76,7 +77,7 @@ export function AdminExamsPage() {
           </p>
         </div>
         <Link
-          to="/admin/denemeler/yeni"
+          to={routes.yonetimDenemeYeni}
           className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
         >
           Yeni Deneme
@@ -100,7 +101,7 @@ export function AdminExamsPage() {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <Link
-                    to={`/admin/denemeler/${exam.id}`}
+                    to={routes.yonetimDenemeDuzenle(exam.id)}
                     className="text-sm font-medium text-gray-900 hover:underline"
                   >
                     {exam.title}
@@ -119,7 +120,7 @@ export function AdminExamsPage() {
                 </div>
                 <div className="flex gap-3 text-sm">
                   <Link
-                    to={`/admin/denemeler/${exam.id}`}
+                    to={routes.yonetimDenemeDuzenle(exam.id)}
                     className="text-gray-900 hover:underline"
                   >
                     Düzenle

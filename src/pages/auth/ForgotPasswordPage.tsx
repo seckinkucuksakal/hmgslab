@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { AuthLayout } from '../../components/AuthLayout'
 import { supabase } from '../../lib/supabase'
 import { getAuthErrorMessage } from '../../lib/auth-errors'
+import { routes } from '../../lib/routes'
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -16,7 +17,7 @@ export function ForgotPasswordPage() {
     setLoading(true)
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}${routes.sifreSifirla}`,
     })
 
     setLoading(false)
@@ -36,7 +37,7 @@ export function ForgotPasswordPage() {
           Şifre sıfırlama bağlantısı e-posta adresine gönderildi.
         </p>
         <p className="mt-4 text-center text-sm">
-          <Link to="/login" className="font-medium text-gray-900 hover:underline">
+          <Link to={routes.giris} className="font-medium text-gray-900 hover:underline">
             Giriş sayfasına dön
           </Link>
         </p>
@@ -82,7 +83,7 @@ export function ForgotPasswordPage() {
       </form>
 
       <p className="mt-4 text-center text-sm">
-        <Link to="/login" className="text-gray-600 hover:underline">
+        <Link to={routes.giris} className="text-gray-600 hover:underline">
           Giriş sayfasına dön
         </Link>
       </p>
