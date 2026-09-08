@@ -108,8 +108,13 @@ where id = (select id from auth.users where email = 'admin@example.com');
 ### Deploying
 
 The app is a static SPA. Build with `npm run build` and serve `dist/`.
-Configure the host to rewrite unknown paths to `/index.html` so client-side
-routes such as `/sonuclar/:id` survive a hard refresh.
+
+**Vercel:** `vercel.json` at the repo root rewrites all routes to
+`index.html` so `/home`, `/giris`, `/sonuclar/:id` and hard refreshes work.
+Redeploy after adding or changing that file.
+
+Other hosts need the same SPA fallback (Netlify `_redirects`, Cloudflare
+`/* /index.html 200`, etc.).
 
 ---
 
