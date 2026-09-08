@@ -5,8 +5,12 @@ import { PasswordInput } from '../../components/PasswordInput'
 import { supabase } from '../../lib/supabase'
 import { getAuthErrorMessage } from '../../lib/auth-errors'
 import { routes } from '../../lib/routes'
+import {
+  AUTH_SIGNUP_OTP_LENGTH,
+  authSignupRedirectTo,
+} from '../../lib/site-url'
 
-const OTP_LENGTH = 6
+const OTP_LENGTH = AUTH_SIGNUP_OTP_LENGTH
 const RESEND_COOLDOWN_SECONDS = 60
 
 type Step = 'form' | 'verify'
@@ -61,6 +65,7 @@ export function RegisterPage() {
       password,
       options: {
         data: { display_name: trimmedName },
+        emailRedirectTo: authSignupRedirectTo,
       },
     })
 
@@ -120,6 +125,9 @@ export function RegisterPage() {
     const { error: resendError } = await supabase.auth.resend({
       type: 'signup',
       email: email.trim(),
+      options: {
+        emailRedirectTo: authSignupRedirectTo,
+      },
     })
 
     setLoading(false)
@@ -165,7 +173,7 @@ export function RegisterPage() {
                 setOtp(event.target.value.replace(/\D/g, '').slice(0, OTP_LENGTH))
               }
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-center text-lg tracking-[0.35em] outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500"
-              placeholder="000000"
+              placeholder="00000000"
             />
           </div>
 

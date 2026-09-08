@@ -39,6 +39,7 @@ Security, so shipping it in the bundle is expected.
 | --- | --- | --- |
 | `VITE_SUPABASE_URL` | `https://<project-ref>.supabase.co` | Project REST URL |
 | `VITE_SUPABASE_ANON_KEY` | `eyJhbGciOi...` | Public anon key only |
+| `VITE_SITE_URL` | `https://hmgslab.com` | Auth email redirect origin; stops localhost appearing in signup emails when you test locally |
 
 Set both in the hosting provider's build environment (Vercel, Netlify,
 Cloudflare Pages, etc.). Vite inlines every `VITE_*` value into the JavaScript
@@ -67,17 +68,11 @@ These cannot be applied from migrations and must be set once per environment.
      is heavily rate limited and is not intended for production traffic.
 
 3. **Authentication → Email Templates → Confirm sign up**
-   - Registration verifies ownership with a 6-digit code on the same page, not
-     a confirmation link. The template must include `{{ .Token }}`, for example:
-
-   ```html
-   <h2>E-posta adresinizi doğrulayın</h2>
-   <p>Kayıt işlemini tamamlamak için bu kodu girin:</p>
-   <p><strong>{{ .Token }}</strong></p>
-   ```
-
-   Remove or de-emphasise the confirmation URL so users receive a code, not a
-   magic link.
+   - Copy the HTML from `supabase/email-templates/confirm-signup.html` into the
+     dashboard editor. Registration uses an 8-digit OTP on the same page, so the
+     template must include `{{ .Token }}` only. Do **not** use
+     `{{ .ConfirmationURL }}` or `{{ .SiteURL }}` — they inject redirect links.
+   - Suggested subject: `HMGSlab — E-posta doğrulama kodunuz`
 
 4. **Authentication → Rate limits**
    - Keep the default per-IP limits for sign-in, sign-up, OTP and password
