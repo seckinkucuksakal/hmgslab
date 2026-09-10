@@ -3,7 +3,6 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useProfile } from '../../hooks/useProfile'
 import { NavbarClock, NavbarUserButton } from './NavbarClock'
-import { ThemeToggle } from '../ThemeToggle'
 import { SITE_MARK, SITE_NAME } from '../../lib/brand'
 import { routes } from '../../lib/routes'
 
@@ -95,7 +94,6 @@ export function AppHeader() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
-          <ThemeToggle compact />
           <NavbarClock />
 
           <button
@@ -136,7 +134,7 @@ export function AppHeader() {
                   onClick={() => setMenuOpen(false)}
                   className="block px-3.5 py-2.5 text-sm text-gray-700 transition hover:bg-gray-50"
                 >
-                  Profil
+                  Profil ve Ayarlar
                 </Link>
                 <button
                   type="button"
@@ -199,7 +197,7 @@ export function AppHeader() {
                   }}
                   className="block px-3.5 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
                 >
-                  Profil
+                  Profil ve Ayarlar
                 </Link>
                 <button
                   type="button"
