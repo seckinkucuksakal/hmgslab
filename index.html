@@ -2,12 +2,13 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <link id="favicon-96" rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
-    <link id="favicon-svg" rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link id="favicon-ico" rel="shortcut icon" href="/favicon.ico" />
-    <link id="apple-touch-icon" rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link id="favicon-ico" rel="icon" href="/favicon.ico?v=2" sizes="any" />
+    <link id="favicon-96" rel="icon" type="image/png" href="/favicon-96x96.png?v=2" sizes="96x96" />
+    <link id="apple-touch-icon" rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2" />
     <meta name="apple-mobile-web-app-title" content="HMGSLab" />
-    <link id="site-manifest" rel="manifest" href="/site.webmanifest" />
+    <link id="site-manifest" rel="manifest" href="/site.webmanifest?v=2" />
+    <meta property="og:image" content="https://hmgslab.com/apple-touch-icon.png?v=2" />
+    <meta name="twitter:image" content="https://hmgslab.com/apple-touch-icon.png?v=2" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HMGSlab — HMGS hazırlık platformu | Canlı deneme ve performans analizi</title>
     <meta
@@ -31,20 +32,15 @@
     <script>
       ;(function () {
         try {
+          var v = '?v=2'
           var isDark = localStorage.getItem('hmgSlab-theme') === 'dark'
           if (isDark) {
             document.documentElement.classList.add('dark')
             document.documentElement.style.colorScheme = 'dark'
-            var favicon96 = document.getElementById('favicon-96')
-            var faviconSvg = document.getElementById('favicon-svg')
-            var faviconIco = document.getElementById('favicon-ico')
-            var appleTouch = document.getElementById('apple-touch-icon')
-            var manifest = document.getElementById('site-manifest')
-            if (favicon96) favicon96.href = '/favicon-dark-96x96.png'
-            if (faviconSvg) faviconSvg.href = '/favicon-dark.svg'
-            if (faviconIco) faviconIco.href = '/favicon-dark.ico'
-            if (appleTouch) appleTouch.href = '/apple-touch-icon-dark.png'
-            if (manifest) manifest.href = '/site-dark.webmanifest'
+            document.getElementById('favicon-ico').href = '/favicon-dark.ico' + v
+            document.getElementById('favicon-96').href = '/favicon-dark-96x96.png' + v
+            document.getElementById('apple-touch-icon').href = '/apple-touch-icon-dark.png' + v
+            document.getElementById('site-manifest').href = '/site-dark.webmanifest' + v
           }
         } catch (_) {}
       })()

@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useProfile } from '../../hooks/useProfile'
+import { SiteLogo } from '../SiteLogo'
 import { NavbarClock, NavbarUserButton } from './NavbarClock'
-import { SITE_MARK, SITE_NAME } from '../../lib/brand'
+import { SITE_NAME } from '../../lib/brand'
 import { routes } from '../../lib/routes'
 
 const navItems: { to: string; label: string; end?: boolean }[] = [
@@ -66,9 +67,7 @@ export function AppHeader() {
             to={routes.home}
             className="group flex shrink-0 items-center gap-2.5"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gray-900 text-[10px] font-bold text-white shadow-sm transition group-hover:bg-gray-800">
-              {SITE_MARK}
-            </span>
+            <SiteLogo size={32} className="transition group-hover:opacity-90" />
             <span className="hidden text-base font-semibold tracking-tight text-gray-900 sm:inline">
               {SITE_NAME}
             </span>

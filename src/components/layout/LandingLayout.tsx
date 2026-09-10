@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { SiteLogo } from '../SiteLogo'
 import { ThemeToggle } from '../ThemeToggle'
 import { LegalFooter } from './LegalFooter'
-import { SITE_MARK, SITE_NAME } from '../../lib/brand'
+import { SITE_NAME } from '../../lib/brand'
 import { routes } from '../../lib/routes'
 
 type LandingLayoutProps = {
@@ -15,9 +16,7 @@ export function LandingLayout({ children }: LandingLayoutProps) {
       <header className="sticky top-0 z-40 border-b border-gray-200/70 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/90">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link to="/" className="group flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gray-900 text-[10px] font-bold text-white shadow-sm transition group-hover:bg-gray-800 dark:bg-blue-600 dark:group-hover:bg-blue-500">
-              {SITE_MARK}
-            </span>
+            <SiteLogo size={32} className="transition group-hover:opacity-90" />
             <span className="text-base font-semibold tracking-tight text-gray-900 dark:text-slate-100">
               {SITE_NAME}
             </span>

@@ -1,3 +1,5 @@
+import { getFaviconSet, type FaviconTheme } from './brand'
+
 export const THEME_STORAGE_KEY = 'hmgSlab-theme'
 
 export type Theme = 'light' | 'dark'
@@ -12,31 +14,13 @@ export function getPreferredTheme(): Theme {
   return getStoredTheme() ?? 'light'
 }
 
-const FAVICON_PATHS = {
-  light: {
-    png96: '/favicon-96x96.png',
-    svg: '/favicon.svg',
-    ico: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
-    manifest: '/site.webmanifest',
-  },
-  dark: {
-    png96: '/favicon-dark-96x96.png',
-    svg: '/favicon-dark.svg',
-    ico: '/favicon-dark.ico',
-    apple: '/apple-touch-icon-dark.png',
-    manifest: '/site-dark.webmanifest',
-  },
-} as const
-
 export function applyFavicon(theme: Theme) {
   if (typeof document === 'undefined') return
 
-  const icons = FAVICON_PATHS[theme]
+  const icons = getFaviconSet(theme as FaviconTheme)
 
-  document.getElementById('favicon-96')?.setAttribute('href', icons.png96)
-  document.getElementById('favicon-svg')?.setAttribute('href', icons.svg)
   document.getElementById('favicon-ico')?.setAttribute('href', icons.ico)
+  document.getElementById('favicon-96')?.setAttribute('href', icons.png96)
   document.getElementById('apple-touch-icon')?.setAttribute('href', icons.apple)
   document.getElementById('site-manifest')?.setAttribute('href', icons.manifest)
 }
