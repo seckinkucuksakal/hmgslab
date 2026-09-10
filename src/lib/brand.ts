@@ -2,7 +2,7 @@
 export const SITE_NAME = 'HMGSlab'
 
 /** Bust browser favicon cache after asset updates. */
-export const FAVICON_VERSION = '2'
+export const FAVICON_VERSION = '3'
 
 export const FAVICON_PATHS = {
   light: {

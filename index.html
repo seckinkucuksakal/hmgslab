@@ -2,37 +2,78 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <link id="favicon-ico" rel="icon" href="/favicon.ico?v=2" sizes="any" />
-    <link id="favicon-96" rel="icon" type="image/png" href="/favicon-96x96.png?v=2" sizes="96x96" />
-    <link id="apple-touch-icon" rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2" />
-    <meta name="apple-mobile-web-app-title" content="HMGSLab" />
-    <link id="site-manifest" rel="manifest" href="/site.webmanifest?v=2" />
-    <meta property="og:image" content="https://hmgslab.com/apple-touch-icon.png?v=2" />
-    <meta name="twitter:image" content="https://hmgslab.com/apple-touch-icon.png?v=2" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HMGSlab — HMGS hazırlık platformu | Canlı deneme ve performans analizi</title>
+
+    <!-- Favicon: always light variant for crawlers & Google Search -->
+    <link rel="icon" href="/favicon.ico?v=3" sizes="48x48" />
+    <link id="favicon-ico" rel="icon" href="/favicon.ico?v=3" sizes="any" />
+    <link id="favicon-96" rel="icon" type="image/png" href="/favicon-96x96.png?v=3" sizes="96x96" />
+    <link id="apple-touch-icon" rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3" />
+    <meta name="apple-mobile-web-app-title" content="HMGSLab" />
+    <link id="site-manifest" rel="manifest" href="/site.webmanifest?v=3" />
+    <meta name="theme-color" content="#ffffff" />
+
+    <title>HMGSLab — HMGS hazırlık platformu | Canlı deneme ve performans analizi</title>
     <meta
       name="description"
-      content="HMGSlab ile HMGS'ye planlı canlı denemeler, performans analizi ve detaylı sonuç incelemesi. Ücretsiz kayıt olun, hazırlığınızı veriye dayalı yönetin."
+      content="HMGSLab, Hukuk Mesleklerine Giriş Sınavı (HMGS) hazırlığı için online canlı deneme, performans analizi ve detaylı sonuç inceleme platformudur. Ücretsiz kayıt olun."
     />
-    <meta name="robots" content="index, follow" />
+    <meta
+      name="keywords"
+      content="HMGS, Hukuk Mesleklerine Giriş Sınavı, HMGS deneme, HMGS hazırlık, online deneme sınavı, HMGSLab"
+    />
+    <link rel="canonical" href="https://hmgslab.com/" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
+    <meta name="application-name" content="HMGSLab" />
+
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="HMGSlab — HMGS hazırlık platformu" />
+    <meta property="og:site_name" content="HMGSLab" />
+    <meta property="og:url" content="https://hmgslab.com/" />
+    <meta property="og:title" content="HMGSLab — HMGS hazırlık platformu" />
     <meta
       property="og:description"
-      content="Planlı canlı denemeler, performans takibi ve sınav sonrası detaylı analiz — HMGS hazırlığı için HMGSlab."
+      content="HMGS adayları için planlı canlı denemeler, ders bazlı performans takibi ve sınav sonrası detaylı analiz."
     />
+    <meta property="og:image" content="https://hmgslab.com/apple-touch-icon.png?v=3" />
     <meta property="og:locale" content="tr_TR" />
+
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="HMGSlab — HMGS hazırlık platformu" />
+    <meta name="twitter:title" content="HMGSLab — HMGS hazırlık platformu" />
     <meta
       name="twitter:description"
-      content="Planlı canlı denemeler, performans takibi ve detaylı sonuç incelemesi."
+      content="HMGS adayları için planlı canlı denemeler, performans takibi ve detaylı sonuç incelemesi."
     />
+    <meta name="twitter:image" content="https://hmgslab.com/apple-touch-icon.png?v=3" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://hmgslab.com/#organization",
+            "name": "HMGSLab",
+            "url": "https://hmgslab.com/",
+            "logo": "https://hmgslab.com/favicon-96x96.png?v=3",
+            "description": "Hukuk Mesleklerine Giriş Sınavı (HMGS) hazırlık platformu — canlı deneme, performans analizi ve sonuç inceleme."
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://hmgslab.com/#website",
+            "url": "https://hmgslab.com/",
+            "name": "HMGSLab",
+            "description": "HMGS hazırlık platformu: planlı canlı denemeler, performans analizi ve detaylı sonuç incelemesi.",
+            "inLanguage": "tr-TR",
+            "publisher": { "@id": "https://hmgslab.com/#organization" }
+          }
+        ]
+      }
+    </script>
+
     <script>
       ;(function () {
         try {
-          var v = '?v=2'
+          var v = '?v=3'
           var isDark = localStorage.getItem('hmgSlab-theme') === 'dark'
           if (isDark) {
             document.documentElement.classList.add('dark')
@@ -47,6 +88,13 @@
     </script>
   </head>
   <body>
+    <noscript>
+      <h1>HMGSLab — HMGS Hazırlık Platformu</h1>
+      <p>
+        HMGSLab, Hukuk Mesleklerine Giriş Sınavı (HMGS) adayları için online canlı
+        deneme sınavları, performans analizi ve detaylı sonuç inceleme sunar.
+      </p>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

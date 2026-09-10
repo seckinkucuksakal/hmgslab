@@ -25,6 +25,7 @@ export function CookieConsent() {
       className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white px-4 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]"
       role="region"
       aria-label="Çerez bildirimi"
+      data-nosnippet
     >
       <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-relaxed text-gray-600">
