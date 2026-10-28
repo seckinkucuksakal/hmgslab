@@ -1,6 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '../../hooks/useAuth'
 import { useProfile } from '../../hooks/useProfile'
+import {
+  AnswerSaveQueue,
+  answerStorageKey,
+  type AnswerQueueState,
+} from '../../lib/answer-queue'
 import {
   getExamErrorMessage,
   getPostSubmitPath,
@@ -13,16 +19,22 @@ import type { AttemptSync, ExamSessionQuestion } from '../../types/exam-attempt'
 import { formatRemainingTime } from '../../types/exam-attempt'
 import { SITE_NAME } from '../../lib/brand'
 
-type PendingSave = {
-  questionId: string
-  optionId: string | null
-  previousOptionId: string | null
+const SUBMIT_DRAIN_TIMEOUT_MS = 10_000
+
+function getStorage(): Storage | null {
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
 }
 
 export function ExamTakePage() {
   const { attemptId } = useParams<{ attemptId: string }>()
   const navigate = useNavigate()
   const { displayName } = useProfile()
+  const { user } = useAuth()
+  const userId = user?.id
 
   const [sync, setSync] = useState<AttemptSync | null>(null)
   const [examDescription, setExamDescription] = useState<string | null>(null)
@@ -30,8 +42,17 @@ export function ExamTakePage() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [saveWarning, setSaveWarning] = useState<string | null>(null)
-  const [savingQuestionId, setSavingQuestionId] = useState<string | null>(null)
+  const [queueState, setQueueState] = useState<AnswerQueueState>({
+    unsaved: 0,
+    saving: false,
+    failing: false,
+    closed: false,
+    rejected: 0,
+  })
+  const [online, setOnline] = useState(
+    typeof navigator === 'undefined' ? true : navigator.onLine,
+  )
+  const [unsavedAtSubmit, setUnsavedAtSubmit] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [remainingSeconds, setRemainingSeconds] = useState(0)
@@ -40,7 +61,49 @@ export function ExamTakePage() {
   const expirySyncSentRef = useRef(false)
   const submitLockRef = useRef(false)
   const confirmButtonRef = useRef<HTMLButtonElement>(null)
-  const pendingSaveRef = useRef<PendingSave | null>(null)
+
+  const queue = useMemo(
+    () =>
+      attemptId && userId
+        ? new AnswerSaveQueue({
+            save: (questionId, optionId) =>
+              saveAttemptAnswer(attemptId, questionId, optionId),
+            storage: getStorage(),
+            storageKey: answerStorageKey(userId, attemptId),
+            onChange: setQueueState,
+          })
+        : null,
+    [attemptId, userId],
+  )
+
+  useEffect(() => {
+    if (!queue) return
+    queue.activate()
+    return () => queue.dispose()
+  }, [queue])
+
+  useEffect(() => {
+    const goOnline = () => {
+      setOnline(true)
+      queue?.retryNow()
+    }
+    const goOffline = () => setOnline(false)
+    window.addEventListener('online', goOnline)
+    window.addEventListener('offline', goOffline)
+    return () => {
+      window.removeEventListener('online', goOnline)
+      window.removeEventListener('offline', goOffline)
+    }
+  }, [queue])
+
+  useEffect(() => {
+    if (queueState.unsaved === 0) return
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [queueState.unsaved])
 
   const applySync = useCallback((next: AttemptSync) => {
     setSync(next)
@@ -56,18 +119,20 @@ export function ExamTakePage() {
 
   const navigateAfterAttemptEnd = useCallback(
     (next: AttemptSync) => {
+      queue?.clear()
       navigate(getPostSubmitPath(next.id, next), { replace: true })
     },
-    [navigate],
+    [navigate, queue],
   )
 
   const loadSession = useCallback(async () => {
-    if (!attemptId) return
+    if (!attemptId || !queue) return
 
     setError(null)
 
     try {
-      const session = await loadExamSession(attemptId)
+      // Check the attempt state first so ended attempts never hit the
+      // in-progress-only session loader.
       const nextSync = await syncExamAttempt(attemptId)
       applySync(nextSync)
 
@@ -76,14 +141,23 @@ export function ExamTakePage() {
         return
       }
 
+      const session = await loadExamSession(attemptId)
+
+      // Recovered (unconfirmed) answers win over what the server last saw.
+      const pending = new Map(queue.pendingAnswers())
       setExamDescription(session.exam_description)
-      setQuestions(session.questions)
+      setQuestions(
+        session.questions.map((q) =>
+          pending.has(q.id) ? { ...q, selected_option_id: pending.get(q.id)! } : q,
+        ),
+      )
       setLoading(false)
+      if (pending.size > 0) queue.retryNow()
     } catch (err) {
       setError(getExamErrorMessage(err))
       setLoading(false)
     }
-  }, [applySync, attemptId, navigateAfterAttemptEnd])
+  }, [applySync, attemptId, navigateAfterAttemptEnd, queue])
 
   useEffect(() => {
     loadSession()
@@ -134,25 +208,6 @@ export function ExamTakePage() {
   }, [applySync, attemptId, navigateAfterAttemptEnd, sync])
 
   useEffect(() => {
-    if (!attemptId || !pendingSaveRef.current) return
-
-    const retry = window.setInterval(async () => {
-      const pending = pendingSaveRef.current
-      if (!pending) return
-
-      try {
-        await saveAttemptAnswer(attemptId, pending.questionId, pending.optionId)
-        pendingSaveRef.current = null
-        setSaveWarning(null)
-      } catch {
-        setSaveWarning('Bağlantı sorunu: cevap kaydedilemedi, yeniden deneniyor…')
-      }
-    }, 5_000)
-
-    return () => window.clearInterval(retry)
-  }, [attemptId, saveWarning])
-
-  useEffect(() => {
     if (!showConfirm) return
 
     confirmButtonRef.current?.focus()
@@ -165,31 +220,6 @@ export function ExamTakePage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [showConfirm, submitting])
 
-  const persistAnswer = async (
-    questionId: string,
-    optionId: string | null,
-    previousOptionId: string | null,
-  ) => {
-    if (!attemptId) return
-
-    setSavingQuestionId(questionId)
-    setSaveWarning(null)
-
-    try {
-      await saveAttemptAnswer(attemptId, questionId, optionId)
-      pendingSaveRef.current = null
-      setSaveWarning(null)
-    } catch (err) {
-      pendingSaveRef.current = { questionId, optionId, previousOptionId }
-      setSaveWarning(
-        'Bağlantı sorunu: cevap kaydedilemedi, yeniden deneniyor…',
-      )
-      setError(null)
-    } finally {
-      setSavingQuestionId(null)
-    }
-  }
-
   const currentQuestion = questions[currentIndex]
 
   const answeredSet = new Set(
@@ -199,45 +229,43 @@ export function ExamTakePage() {
   const blankCount = questions.length - answeredSet.size
   const isScheduled = sync?.exam_mode === 'scheduled'
 
-  const handleSelectOption = async (optionId: string) => {
-    if (!attemptId || !currentQuestion || submitting) return
+  const inputsLocked =
+    submitting || remainingSeconds <= 0 || queueState.closed || sync?.status !== 'in_progress'
 
-    const previous = currentQuestion.selected_option_id
+  const setAnswer = (optionId: string | null) => {
+    if (!queue || !currentQuestion || inputsLocked) return
     setQuestions((prev) =>
       prev.map((q) =>
-        q.id === currentQuestion.id
-          ? { ...q, selected_option_id: optionId }
-          : q,
+        q.id === currentQuestion.id ? { ...q, selected_option_id: optionId } : q,
       ),
     )
-
-    await persistAnswer(currentQuestion.id, optionId, previous)
+    queue.set(currentQuestion.id, optionId)
   }
 
-  const handleClearAnswer = async () => {
-    if (!attemptId || !currentQuestion || submitting) return
+  const handleSelectOption = (optionId: string) => setAnswer(optionId)
+  const handleClearAnswer = () => setAnswer(null)
 
-    const previous = currentQuestion.selected_option_id
-    setQuestions((prev) =>
-      prev.map((q) =>
-        q.id === currentQuestion.id
-          ? { ...q, selected_option_id: null }
-          : q,
-      ),
-    )
-
-    await persistAnswer(currentQuestion.id, null, previous)
-  }
-
-  const handleSubmit = async () => {
-    if (!attemptId || submitLockRef.current) return
+  const handleSubmit = async (force = false) => {
+    if (!attemptId || !queue || submitLockRef.current) return
 
     submitLockRef.current = true
     setSubmitting(true)
     setError(null)
 
     try {
+      // Wait (bounded) for in-flight/pending answers before submitting.
+      if (!force) {
+        const drained = await queue.drain(SUBMIT_DRAIN_TIMEOUT_MS)
+        if (!drained && !queue.state.closed) {
+          setUnsavedAtSubmit(queue.state.unsaved)
+          submitLockRef.current = false
+          setSubmitting(false)
+          return
+        }
+      }
+
       const result = await submitExamAttempt(attemptId)
+      queue.clear()
       navigate(getPostSubmitPath(attemptId, result), { replace: true })
     } catch (err) {
       setError(getExamErrorMessage(err))
@@ -246,6 +274,22 @@ export function ExamTakePage() {
       setShowConfirm(false)
     }
   }
+
+  const saveStatus = (() => {
+    if (queueState.unsaved > 0 && (queueState.failing || !online)) {
+      return {
+        text: `Kaydedilmeyen ${queueState.unsaved} cevap${online ? '' : ' (çevrimdışı)'}. Bağlantı gelince yeniden denenecek.`,
+        tone: 'error' as const,
+      }
+    }
+    if (queueState.unsaved > 0 || queueState.saving) {
+      return { text: 'Kaydediliyor…', tone: 'neutral' as const }
+    }
+    if (queueState.closed) {
+      return { text: 'Cevap girişi kapandı.', tone: 'error' as const }
+    }
+    return { text: 'Kaydedildi', tone: 'ok' as const }
+  })()
 
   if (loading) {
     return (
@@ -311,13 +355,31 @@ export function ExamTakePage() {
             <p className={`text-lg font-semibold ${timerClass}`}>
               {formatRemainingTime(remainingSeconds)}
             </p>
+            <p
+              role="status"
+              aria-live="polite"
+              className={`mt-1 text-xs ${
+                saveStatus.tone === 'error'
+                  ? 'text-red-700'
+                  : saveStatus.tone === 'ok'
+                    ? 'text-green-700'
+                    : 'text-gray-500'
+              }`}
+            >
+              {saveStatus.text}
+            </p>
           </div>
         </div>
       </header>
 
-      {(error || saveWarning) && (
+      {error && (
         <p className="mx-auto mt-4 max-w-3xl px-4 text-sm text-red-700 sm:px-6">
-          {saveWarning ?? error}
+          {error}
+        </p>
+      )}
+      {queueState.rejected > 0 && (
+        <p className="mx-auto mt-4 max-w-3xl px-4 text-sm text-red-700 sm:px-6">
+          {queueState.rejected} cevap sunucu tarafından kabul edilmedi.
         </p>
       )}
 
@@ -330,7 +392,7 @@ export function ExamTakePage() {
           {currentQuestion.question_text}
         </p>
 
-        <fieldset className="space-y-3" disabled={Boolean(savingQuestionId)}>
+        <fieldset className="space-y-3" disabled={inputsLocked}>
           <legend className="sr-only">Cevap seçenekleri</legend>
           {currentQuestion.options.map((option) => {
             const selected = currentQuestion.selected_option_id === option.id
@@ -365,7 +427,7 @@ export function ExamTakePage() {
           <button
             type="button"
             onClick={handleClearAnswer}
-            disabled={Boolean(savingQuestionId)}
+            disabled={inputsLocked}
             className="mt-4 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
           >
             Cevabı temizle
@@ -450,10 +512,20 @@ export function ExamTakePage() {
                   ? `${blankCount} soruyu boş bıraktınız. Sınavı bitirmek istediğinize emin misiniz?`
                   : 'Sınavı bitirmek istediğinize emin misiniz?'}
             </p>
-            <div className="mt-6 flex justify-end gap-3">
+            {unsavedAtSubmit > 0 && (
+              <p className="mt-3 text-sm text-red-700">
+                {unsavedAtSubmit} cevap sunucuya kaydedilemedi. Bağlantınızı
+                kontrol edip yeniden deneyin; isterseniz bu cevaplar olmadan da
+                bitirebilirsiniz.
+              </p>
+            )}
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setShowConfirm(false)}
+                onClick={() => {
+                  setUnsavedAtSubmit(0)
+                  setShowConfirm(false)
+                }}
                 disabled={submitting}
                 className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
@@ -462,12 +534,26 @@ export function ExamTakePage() {
               <button
                 ref={confirmButtonRef}
                 type="button"
-                onClick={handleSubmit}
+                onClick={() => handleSubmit()}
                 disabled={submitting}
                 className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
               >
-                {submitting ? 'Gönderiliyor…' : 'Evet, bitir'}
+                {submitting
+                  ? 'Kayıtlar bekleniyor…'
+                  : unsavedAtSubmit > 0
+                    ? 'Yeniden dene'
+                    : 'Evet, bitir'}
               </button>
+              {unsavedAtSubmit > 0 && (
+                <button
+                  type="button"
+                  onClick={() => handleSubmit(true)}
+                  disabled={submitting}
+                  className="rounded-md border border-red-300 px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50"
+                >
+                  Kaydedilmeyenlerle bitir
+                </button>
+              )}
             </div>
           </div>
         </div>
