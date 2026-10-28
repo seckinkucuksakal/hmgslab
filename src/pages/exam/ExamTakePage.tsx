@@ -18,6 +18,24 @@ import {
 import type { AttemptSync, ExamSessionQuestion } from '../../types/exam-attempt'
 import { formatRemainingTime } from '../../types/exam-attempt'
 import { SITE_NAME } from '../../lib/brand'
+import {
+  clearExamFlags,
+  examFlagsKey,
+  loadExamFlags,
+  matchesFilter,
+  saveExamFlags,
+  stepIndex,
+  type QuestionFilter,
+} from '../../lib/exam-flags'
+
+const focusRing =
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+
+const filterLabels: Record<QuestionFilter, string> = {
+  all: 'Tümü',
+  blank: 'Boş',
+  flagged: 'İşaretli',
+}
 
 const SUBMIT_DRAIN_TIMEOUT_MS = 10_000
 
@@ -56,11 +74,15 @@ export function ExamTakePage() {
   const [submitting, setSubmitting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [remainingSeconds, setRemainingSeconds] = useState(0)
+  const [flagged, setFlagged] = useState<Set<string>>(() => new Set())
+  const [filter, setFilter] = useState<QuestionFilter>('all')
 
   const syncAnchorRef = useRef<{ at: number; seconds: number } | null>(null)
   const expirySyncSentRef = useRef(false)
   const submitLockRef = useRef(false)
   const confirmButtonRef = useRef<HTMLButtonElement>(null)
+  const finishButtonRef = useRef<HTMLButtonElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   const queue = useMemo(
     () =>
@@ -75,6 +97,13 @@ export function ExamTakePage() {
         : null,
     [attemptId, userId],
   )
+
+  const flagsKey = attemptId && userId ? examFlagsKey(userId, attemptId) : null
+
+  const clearLocalState = useCallback(() => {
+    queue?.clear()
+    if (flagsKey) clearExamFlags(flagsKey)
+  }, [queue, flagsKey])
 
   useEffect(() => {
     if (!queue) return
@@ -119,10 +148,10 @@ export function ExamTakePage() {
 
   const navigateAfterAttemptEnd = useCallback(
     (next: AttemptSync) => {
-      queue?.clear()
+      clearLocalState()
       navigate(getPostSubmitPath(next.id, next), { replace: true })
     },
-    [navigate, queue],
+    [navigate, clearLocalState],
   )
 
   const loadSession = useCallback(async () => {
@@ -151,13 +180,18 @@ export function ExamTakePage() {
           pending.has(q.id) ? { ...q, selected_option_id: pending.get(q.id)! } : q,
         ),
       )
+      if (flagsKey) setFlagged(loadExamFlags(flagsKey))
       setLoading(false)
       if (pending.size > 0) queue.retryNow()
     } catch (err) {
-      setError(getExamErrorMessage(err))
+      setError(
+        typeof navigator !== 'undefined' && !navigator.onLine
+          ? 'İnternet bağlantısı yok. Bağlantınız gelince yeniden deneyin; kayıtlı cevaplarınız korunur.'
+          : getExamErrorMessage(err),
+      )
       setLoading(false)
     }
-  }, [applySync, attemptId, navigateAfterAttemptEnd, queue])
+  }, [applySync, attemptId, flagsKey, navigateAfterAttemptEnd, queue])
 
   useEffect(() => {
     loadSession()
@@ -211,13 +245,36 @@ export function ExamTakePage() {
     if (!showConfirm) return
 
     confirmButtonRef.current?.focus()
+    const opener = finishButtonRef.current
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !submitting) setShowConfirm(false)
+      if (event.key === 'Escape' && !submitting) {
+        setShowConfirm(false)
+        return
+      }
+      if (event.key !== 'Tab') return
+
+      // keep focus inside the dialog
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )
+      if (!focusable || focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      opener?.focus()
+    }
   }, [showConfirm, submitting])
 
   const currentQuestion = questions[currentIndex]
@@ -227,6 +284,37 @@ export function ExamTakePage() {
   )
 
   const blankCount = questions.length - answeredSet.size
+  const flaggedCount = questions.filter((q) => flagged.has(q.id)).length
+
+  const isVisible = (index: number) => {
+    const question = questions[index]
+    return (
+      index === currentIndex ||
+      matchesFilter(filter, answeredSet.has(question.id), flagged.has(question.id))
+    )
+  }
+  const prevIndex = stepIndex(currentIndex, -1, questions.length, (i) =>
+    filter === 'all' ? true : isVisible(i),
+  )
+  const nextIndex = stepIndex(currentIndex, 1, questions.length, (i) =>
+    filter === 'all' ? true : isVisible(i),
+  )
+
+  const toggleFlag = () => {
+    if (!currentQuestion) return
+    setFlagged((current) => {
+      const next = new Set(current)
+      if (next.has(currentQuestion.id)) next.delete(currentQuestion.id)
+      else next.add(currentQuestion.id)
+      if (flagsKey) saveExamFlags(flagsKey, next)
+      return next
+    })
+  }
+
+  const retryLoad = () => {
+    setLoading(true)
+    void loadSession()
+  }
   const isScheduled = sync?.exam_mode === 'scheduled'
 
   const inputsLocked =
@@ -265,7 +353,7 @@ export function ExamTakePage() {
       }
 
       const result = await submitExamAttempt(attemptId)
-      queue.clear()
+      clearLocalState()
       navigate(getPostSubmitPath(attemptId, result), { replace: true })
     } catch (err) {
       setError(getExamErrorMessage(err))
@@ -299,16 +387,30 @@ export function ExamTakePage() {
     )
   }
 
-  if (error && !sync) {
+  if (error && (!sync || questions.length === 0)) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <p className="text-sm text-red-700">{error}</p>
-        <Link
-          to="/denemeler"
-          className="mt-4 inline-block text-sm text-gray-600 hover:text-gray-900"
-        >
-          Denemelere dön
-        </Link>
+        <p role="alert" className="text-sm text-red-700">
+          {error}
+        </p>
+        <p className="mt-2 text-xs text-gray-500">
+          Yeniden denemek cevaplarınızı silmez.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-4">
+          <button
+            type="button"
+            onClick={retryLoad}
+            className={`rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 ${focusRing}`}
+          >
+            Yeniden dene
+          </button>
+          <Link
+            to="/denemeler"
+            className={`text-sm text-gray-600 hover:text-gray-900 ${focusRing}`}
+          >
+            Denemelere dön
+          </Link>
+        </div>
       </div>
     )
   }
@@ -317,12 +419,21 @@ export function ExamTakePage() {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <p className="text-sm text-gray-600">Sınav verisi bulunamadı.</p>
-        <Link
-          to="/denemeler"
-          className="mt-4 inline-block text-sm text-gray-600 hover:text-gray-900"
-        >
-          Denemelere dön
-        </Link>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-4">
+          <button
+            type="button"
+            onClick={retryLoad}
+            className={`rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 ${focusRing}`}
+          >
+            Yeniden dene
+          </button>
+          <Link
+            to="/denemeler"
+            className={`text-sm text-gray-600 hover:text-gray-900 ${focusRing}`}
+          >
+            Denemelere dön
+          </Link>
+        </div>
       </div>
     )
   }
@@ -332,33 +443,38 @@ export function ExamTakePage() {
       ? 'text-red-700 tabular-nums'
       : 'text-gray-900 tabular-nums'
 
+  const currentFlagged = flagged.has(currentQuestion.id)
+  const visibleIndexes = questions
+    .map((_, index) => index)
+    .filter((index) => isVisible(index))
+
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-gray-200 px-4 py-4 sm:px-6">
-        <div className="mx-auto flex max-w-3xl items-start justify-between gap-4">
+      <header className="sticky top-0 z-20 border-b border-gray-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
+        <div className="mx-auto flex max-w-3xl items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <p className="hidden text-xs font-medium uppercase tracking-wide text-gray-500 sm:block">
               {SITE_NAME}
             </p>
-            <h1 className="truncate text-base font-semibold text-gray-900">
+            <h1 className="truncate text-sm font-semibold text-gray-900 sm:text-base">
               {sync.exam_title}
             </h1>
-            <p className="mt-1 text-xs text-gray-500">{displayName}</p>
+            <p className="mt-0.5 truncate text-xs text-gray-500">{displayName}</p>
             {examDescription && (
-              <p className="mt-1 line-clamp-2 text-xs text-gray-500">
+              <p className="mt-1 hidden line-clamp-2 text-xs text-gray-500 sm:block">
                 {examDescription}
               </p>
             )}
           </div>
           <div className="shrink-0 text-right">
             <p className="text-xs text-gray-500">Kalan süre</p>
-            <p className={`text-lg font-semibold ${timerClass}`}>
+            <p className={`text-xl font-semibold sm:text-lg ${timerClass}`}>
               {formatRemainingTime(remainingSeconds)}
             </p>
             <p
               role="status"
               aria-live="polite"
-              className={`mt-1 text-xs ${
+              className={`mt-0.5 text-xs ${
                 saveStatus.tone === 'error'
                   ? 'text-red-700'
                   : saveStatus.tone === 'ok'
@@ -373,7 +489,7 @@ export function ExamTakePage() {
       </header>
 
       {error && (
-        <p className="mx-auto mt-4 max-w-3xl px-4 text-sm text-red-700 sm:px-6">
+        <p role="alert" className="mx-auto mt-4 max-w-3xl px-4 text-sm text-red-700 sm:px-6">
           {error}
         </p>
       )}
@@ -383,12 +499,26 @@ export function ExamTakePage() {
         </p>
       )}
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
-        <p className="mb-4 text-sm text-gray-500">
-          Soru {currentQuestion.sort_order} / {questions.length}
-        </p>
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-gray-500">
+            Soru {currentQuestion.sort_order} / {questions.length}
+          </p>
+          <button
+            type="button"
+            aria-pressed={currentFlagged}
+            onClick={toggleFlag}
+            className={`min-h-10 rounded-md border px-3 py-1.5 text-sm ${focusRing} ${
+              currentFlagged
+                ? 'border-amber-600 bg-amber-50 text-amber-800'
+                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            {currentFlagged ? '⚑ İşaretli – kaldır' : '⚐ Sonra dön'}
+          </button>
+        </div>
 
-        <p className="mb-8 text-base leading-relaxed text-gray-900 sm:text-lg">
+        <p className="mb-6 whitespace-pre-line break-words text-base leading-relaxed text-gray-900 sm:mb-8 sm:text-lg [overflow-wrap:anywhere]">
           {currentQuestion.question_text}
         </p>
 
@@ -399,7 +529,7 @@ export function ExamTakePage() {
             return (
               <label
                 key={option.id}
-                className={`flex cursor-pointer items-start gap-3 rounded-md border px-4 py-3 text-sm transition-colors ${
+                className={`flex min-h-12 cursor-pointer touch-manipulation items-start gap-3 rounded-md border px-4 py-3 text-sm transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-blue-600 sm:text-base ${
                   selected
                     ? 'border-gray-900 bg-gray-50'
                     : 'border-gray-200 hover:border-gray-400'
@@ -410,9 +540,9 @@ export function ExamTakePage() {
                   name={`question-${currentQuestion.id}`}
                   checked={selected}
                   onChange={() => handleSelectOption(option.id)}
-                  className="mt-0.5"
+                  className="mt-1 h-4 w-4 shrink-0"
                 />
-                <span>
+                <span className="min-w-0 break-words [overflow-wrap:anywhere]">
                   <span className="mr-2 font-medium text-gray-700">
                     {option.option_key}.
                   </span>
@@ -428,67 +558,114 @@ export function ExamTakePage() {
             type="button"
             onClick={handleClearAnswer}
             disabled={inputsLocked}
-            className="mt-4 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+            className={`mt-4 min-h-10 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 ${focusRing}`}
           >
             Cevabı temizle
           </button>
         )}
       </main>
 
-      <footer className="border-t border-gray-200 px-4 py-4 sm:px-6">
+      <footer className="sticky bottom-0 z-20 border-t border-gray-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
         <div className="mx-auto max-w-3xl">
-          <div className="mb-4 flex flex-wrap gap-2">
-            {questions.map((question, index) => {
-              const isCurrent = index === currentIndex
-              const isAnswered = answeredSet.has(question.id)
+          <div
+            role="group"
+            aria-label="Soru filtresi"
+            className="mb-3 flex flex-wrap gap-2"
+          >
+            {(Object.keys(filterLabels) as QuestionFilter[]).map((key) => {
+              const count =
+                key === 'all'
+                  ? questions.length
+                  : key === 'blank'
+                    ? blankCount
+                    : flaggedCount
               return (
                 <button
-                  key={question.id}
+                  key={key}
                   type="button"
-                  onClick={() => setCurrentIndex(index)}
-                  className={`h-8 min-w-8 rounded border px-2 text-xs font-medium ${
-                    isCurrent
+                  aria-pressed={filter === key}
+                  onClick={() => setFilter(key)}
+                  className={`min-h-9 rounded-full border px-3 py-1 text-xs font-medium ${focusRing} ${
+                    filter === key
                       ? 'border-gray-900 bg-gray-900 text-white'
-                      : isAnswered
-                        ? 'border-gray-400 bg-gray-100 text-gray-900'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-400'
+                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                   }`}
-                  aria-label={`Soru ${question.sort_order}${isAnswered ? ', cevaplandı' : ', boş'}`}
-                  aria-current={isCurrent ? 'step' : undefined}
                 >
-                  {question.sort_order}
+                  {filterLabels[key]} ({count})
                 </button>
               )
             })}
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div
+            className="mb-3 flex max-h-24 flex-wrap gap-2 overflow-y-auto overscroll-contain"
+            role="group"
+            aria-label="Sorular"
+          >
+            {visibleIndexes.length === 0 ? (
+              <p className="text-xs text-gray-500">Bu filtrede soru yok.</p>
+            ) : (
+              visibleIndexes.map((index) => {
+                const question = questions[index]
+                const isCurrent = index === currentIndex
+                const isAnswered = answeredSet.has(question.id)
+                const isFlagged = flagged.has(question.id)
+                return (
+                  <button
+                    key={question.id}
+                    type="button"
+                    onClick={() => setCurrentIndex(index)}
+                    className={`relative h-10 min-w-10 touch-manipulation rounded border px-2 text-xs font-medium sm:h-8 sm:min-w-8 ${focusRing} ${
+                      isCurrent
+                        ? 'border-gray-900 bg-gray-900 text-white'
+                        : isAnswered
+                          ? 'border-gray-400 bg-gray-100 text-gray-900'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-400'
+                    }`}
+                    aria-label={`Soru ${question.sort_order}${isAnswered ? ', cevaplandı' : ', boş'}${isFlagged ? ', işaretli' : ''}`}
+                    aria-current={isCurrent ? 'step' : undefined}
+                  >
+                    {question.sort_order}
+                    {isFlagged && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-amber-500"
+                      />
+                    )}
+                  </button>
+                )
+              })
+            )}
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
             <div className="flex gap-2">
               <button
                 type="button"
-                disabled={currentIndex === 0}
-                onClick={() => setCurrentIndex((i) => i - 1)}
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                disabled={prevIndex === null}
+                onClick={() => prevIndex !== null && setCurrentIndex(prevIndex)}
+                className={`min-h-11 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40 ${focusRing}`}
               >
                 Önceki
               </button>
               <button
                 type="button"
-                disabled={currentIndex >= questions.length - 1}
-                onClick={() => setCurrentIndex((i) => i + 1)}
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                disabled={nextIndex === null}
+                onClick={() => nextIndex !== null && setCurrentIndex(nextIndex)}
+                className={`min-h-11 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40 ${focusRing}`}
               >
                 Sonraki
               </button>
             </div>
 
             <button
+              ref={finishButtonRef}
               type="button"
               onClick={() => setShowConfirm(true)}
               disabled={submitting}
-              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+              className={`min-h-11 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 ${focusRing}`}
             >
-              {isScheduled ? 'Sınavı erken bitir' : 'Sınavı bitir'}
+              {isScheduled ? 'Erken bitir' : 'Sınavı bitir'}
             </button>
           </div>
         </div>
@@ -500,20 +677,56 @@ export function ExamTakePage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="submit-title"
+          aria-describedby="submit-desc"
         >
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+          <div
+            ref={dialogRef}
+            className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 shadow-lg"
+          >
             <h2 id="submit-title" className="text-base font-semibold text-gray-900">
               {isScheduled ? 'Sınavı erken bitir' : 'Sınavı bitir'}
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-md border border-gray-200 px-3 py-2">
+                <dt className="text-xs text-gray-500">Cevaplanan</dt>
+                <dd className="text-lg font-semibold tabular-nums text-gray-900">
+                  {answeredSet.size}
+                </dd>
+              </div>
+              <div className="rounded-md border border-gray-200 px-3 py-2">
+                <dt className="text-xs text-gray-500">Boş</dt>
+                <dd className="text-lg font-semibold tabular-nums text-gray-900">
+                  {blankCount}
+                </dd>
+              </div>
+              <div className="rounded-md border border-gray-200 px-3 py-2">
+                <dt className="text-xs text-gray-500">İşaretli</dt>
+                <dd className="text-lg font-semibold tabular-nums text-gray-900">
+                  {flaggedCount}
+                </dd>
+              </div>
+              <div
+                className={`rounded-md border px-3 py-2 ${
+                  queueState.unsaved > 0 ? 'border-red-300' : 'border-gray-200'
+                }`}
+              >
+                <dt className="text-xs text-gray-500">Kaydedilmemiş</dt>
+                <dd
+                  className={`text-lg font-semibold tabular-nums ${
+                    queueState.unsaved > 0 ? 'text-red-700' : 'text-gray-900'
+                  }`}
+                >
+                  {queueState.unsaved}
+                </dd>
+              </div>
+            </dl>
+            <p id="submit-desc" className="mt-4 text-sm text-gray-600">
               {isScheduled
                 ? 'Sınavı bitirdiğinizde cevaplarınızı artık değiştiremezsiniz. Devam etmek istiyor musunuz?'
-                : blankCount > 0
-                  ? `${blankCount} soruyu boş bıraktınız. Sınavı bitirmek istediğinize emin misiniz?`
-                  : 'Sınavı bitirmek istediğinize emin misiniz?'}
+                : 'Bitirdiğinizde cevaplarınızı artık değiştiremezsiniz. Bitirmeden önce bekleyen kayıtlar tamamlanır.'}
             </p>
             {unsavedAtSubmit > 0 && (
-              <p className="mt-3 text-sm text-red-700">
+              <p role="alert" className="mt-3 text-sm text-red-700">
                 {unsavedAtSubmit} cevap sunucuya kaydedilemedi. Bağlantınızı
                 kontrol edip yeniden deneyin; isterseniz bu cevaplar olmadan da
                 bitirebilirsiniz.
@@ -527,7 +740,7 @@ export function ExamTakePage() {
                   setShowConfirm(false)
                 }}
                 disabled={submitting}
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                className={`min-h-11 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 ${focusRing}`}
               >
                 Vazgeç
               </button>
@@ -536,7 +749,7 @@ export function ExamTakePage() {
                 type="button"
                 onClick={() => handleSubmit()}
                 disabled={submitting}
-                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                className={`min-h-11 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 ${focusRing}`}
               >
                 {submitting
                   ? 'Kayıtlar bekleniyor…'
@@ -549,7 +762,7 @@ export function ExamTakePage() {
                   type="button"
                   onClick={() => handleSubmit(true)}
                   disabled={submitting}
-                  className="rounded-md border border-red-300 px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  className={`min-h-11 rounded-md border border-red-300 px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 ${focusRing}`}
                 >
                   Kaydedilmeyenlerle bitir
                 </button>

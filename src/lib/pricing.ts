@@ -3,60 +3,57 @@ import { routes } from './routes'
 export type PricingPlan = {
   id: string
   name: string
-  price: string
-  period: string
+  /** Shown instead of an amount: no price is final until billing goes live. */
+  priceLabel: string
   description: string
   features: string[]
   highlighted?: boolean
+  /** False while the plan cannot be purchased yet; the call to action is inactive. */
+  available: boolean
   ctaLabel: string
   ctaHref: string
 }
 
-/** Placeholder plans — update amounts when billing goes live. */
+/**
+ * Billing is not connected yet. Today every registered user can use the active
+ * exams for free; paid plans are announced as planned, without prices or any
+ * purchase action.
+ */
 export const pricingPlans: PricingPlan[] = [
   {
-    id: 'starter',
-    name: 'Başlangıç',
-    price: '0 ₺',
-    period: '',
-    description: 'Platformu keşfedin ve ilk denemenizi çözün.',
+    id: 'free',
+    name: 'Ücretsiz erişim',
+    priceLabel: 'Şu an ücretsiz',
+    description: 'Kayıt olun, aktif denemeleri hemen çözün.',
     features: [
-      '1 ücretsiz deneme',
-      'Temel sonuç özeti',
-      'Cevap anahtarı inceleme',
+      'Aktif deneme ve canlı sınavlara katılım',
+      'Sonuç ve cevap incelemesi',
+      'Ders ve konu bazlı performans analizi',
+      'Denemenin katılımcıları arasında sıralama',
     ],
+    highlighted: true,
+    available: true,
     ctaLabel: 'Ücretsiz kayıt ol',
     ctaHref: routes.kayit,
   },
   {
     id: 'monthly',
-    name: 'Aylık',
-    price: '299 ₺',
-    period: '/ ay',
-    description: 'Düzenli çalışma için esnek erişim.',
-    features: [
-      'Tüm planlı canlı denemeler',
-      'Performans ve konu analizi',
-      'Sıralama ve geçmiş sonuçlar',
-      'Öncelikli destek',
-    ],
-    highlighted: true,
-    ctaLabel: 'Aylık pakete başla',
+    name: 'Aylık paket',
+    priceLabel: 'Fiyat açıklanacak',
+    description: 'Planlanan paket. Kapsamı ve fiyatı henüz belirlenmedi.',
+    features: ['Ödeme sistemi devreye girdiğinde duyurulacak'],
+    available: false,
+    ctaLabel: 'Yakında',
     ctaHref: routes.kayit,
   },
   {
     id: 'season',
-    name: 'Sezon',
-    price: '1.499 ₺',
-    period: '/ sezon',
-    description: 'HMGS hazırlık döneminiz boyunca tam erişim.',
-    features: [
-      'Aylık paketteki her şey',
-      'Sezon boyunca sınırsız deneme',
-      'Detaylı ilerleme raporları',
-      'Erken erişim yeni denemelere',
-    ],
-    ctaLabel: 'Sezon paketine başla',
+    name: 'Sezon paketi',
+    priceLabel: 'Fiyat açıklanacak',
+    description: 'Planlanan paket. Kapsamı ve fiyatı henüz belirlenmedi.',
+    features: ['Ödeme sistemi devreye girdiğinde duyurulacak'],
+    available: false,
+    ctaLabel: 'Yakında',
     ctaHref: routes.kayit,
   },
 ]

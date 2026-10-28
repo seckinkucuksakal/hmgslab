@@ -2,6 +2,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { LandingLayout } from '../components/layout/LandingLayout'
 import { useAuth } from '../hooks/useAuth'
 import { SITE_NAME } from '../lib/brand'
+import { SampleScreens } from '../components/landing/SampleScreens'
 import { landingFeatures, pricingPlans } from '../lib/pricing'
 import { routes } from '../lib/routes'
 
@@ -82,6 +83,8 @@ export function LandingPage() {
         </ul>
       </section>
 
+      <SampleScreens />
+
       <section
         id="fiyatlar"
         className="scroll-mt-20 border-t border-gray-200 bg-white dark:border-slate-800 dark:bg-slate-900"
@@ -92,8 +95,9 @@ export function LandingPage() {
               Fiyatlar
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-gray-600 dark:text-slate-400">
-              İhtiyacınıza uygun paketi seçin. Ödeme altyapısı yakında devreye
-              alınacak; şimdilik kayıt olun ve duyurulardan haberdar olun.
+              Ödeme sistemi henüz etkin değil. Şu anda kayıt olan herkes aktif
+              denemelere ücretsiz erişebilir. Ücretli paketler ve fiyatlar
+              belirlendiğinde duyurulacak.
             </p>
           </div>
 
@@ -110,7 +114,7 @@ export function LandingPage() {
               >
                 {plan.highlighted && (
                   <span className="mb-4 inline-flex w-fit rounded-full bg-gray-900 px-2.5 py-0.5 text-xs font-medium text-white dark:bg-blue-600">
-                    Popüler
+                    Şu an açık
                   </span>
                 )}
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
@@ -119,15 +123,8 @@ export function LandingPage() {
                 <p className="mt-1 text-sm text-gray-600 dark:text-slate-400">
                   {plan.description}
                 </p>
-                <p className="mt-6 flex items-baseline gap-1">
-                  <span className="text-3xl font-semibold tabular-nums text-gray-900 dark:text-slate-100">
-                    {plan.price}
-                  </span>
-                  {plan.period && (
-                    <span className="text-sm text-gray-500 dark:text-slate-400">
-                      {plan.period}
-                    </span>
-                  )}
+                <p className="mt-6 text-2xl font-semibold text-gray-900 dark:text-slate-100">
+                  {plan.priceLabel}
                 </p>
                 <ul className="mt-6 flex-1 space-y-2.5 text-sm text-gray-600 dark:text-slate-400">
                   {plan.features.map((feature) => (
@@ -137,24 +134,28 @@ export function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link
-                  to={plan.ctaHref}
-                  className={[
-                    'mt-8 block rounded-md px-4 py-2.5 text-center text-sm font-medium',
-                    plan.highlighted
-                      ? 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-blue-600 dark:hover:bg-blue-500'
-                      : 'border border-gray-300 text-gray-800 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800',
-                  ].join(' ')}
-                >
-                  {plan.ctaLabel}
-                </Link>
+                {plan.available ? (
+                  <Link
+                    to={plan.ctaHref}
+                    className="mt-8 block rounded-md bg-gray-900 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500"
+                  >
+                    {plan.ctaLabel}
+                  </Link>
+                ) : (
+                  <span
+                    aria-disabled="true"
+                    className="mt-8 block cursor-not-allowed rounded-md border border-gray-200 px-4 py-2.5 text-center text-sm font-medium text-gray-500 dark:border-slate-800 dark:text-slate-500"
+                  >
+                    {plan.ctaLabel}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
 
           <p className="mt-8 text-center text-xs text-gray-500 dark:text-slate-500">
-            Fiyatlar bilgilendirme amaçlıdır ve ödeme entegrasyonu öncesinde
-            değişebilir.
+            Paket içerikleri ve fiyatlar henüz kesinleşmedi; bu sayfada satın
+            alma işlemi yapılamaz.
           </p>
         </div>
       </section>
@@ -164,7 +165,7 @@ export function LandingPage() {
           Hazırlığa bugün başlayın
         </h2>
         <p className="mx-auto mt-3 max-w-lg text-sm text-gray-600 dark:text-slate-400">
-          Hesap oluşturun; planlı denemeler açıklandığında ilk siz haberdar olun.
+          Hesap oluşturun ve aktif denemeleri hemen çözmeye başlayın.
         </p>
         <Link
           to={routes.kayit}
