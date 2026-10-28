@@ -1,3 +1,4 @@
+import { ACCESS_REQUIRED_MESSAGE, isAccessError } from './access'
 import { supabase } from './supabase'
 import type { ExamLiveStatus, StudentExamListItem } from '../types/live-exam'
 
@@ -94,6 +95,7 @@ export async function fetchNextUpcomingExam(
 }
 
 export function getLiveExamErrorMessage(error: unknown): string {
+  if (isAccessError(error)) return ACCESS_REQUIRED_MESSAGE
   if (error && typeof error === 'object' && 'message' in error) {
     const message = String((error as { message: string }).message)
     if (message.includes('Sınav')) return message

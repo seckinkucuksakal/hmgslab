@@ -1,3 +1,4 @@
+import { ACCESS_REQUIRED_MESSAGE, isAccessError } from './access'
 import { supabase } from './supabase'
 import type { AttemptRanking, ExamLeaderboard } from '../types/exam-ranking'
 
@@ -26,6 +27,7 @@ export async function getExamLeaderboard(
 }
 
 export function getRankingErrorMessage(error: unknown): string {
+  if (isAccessError(error)) return ACCESS_REQUIRED_MESSAGE
   if (error && typeof error === 'object' && 'message' in error) {
     const message = String((error as { message: string }).message)
     if (message.includes('bulunamadı')) return message

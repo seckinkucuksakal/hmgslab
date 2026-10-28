@@ -1,3 +1,4 @@
+import { ACCESS_REQUIRED_MESSAGE, isAccessError } from './access'
 import { supabase } from './supabase'
 import type { UserPerformanceAnalytics } from '../types/performance'
 
@@ -9,6 +10,7 @@ export async function getUserPerformanceAnalytics(): Promise<UserPerformanceAnal
 }
 
 export function getPerformanceErrorMessage(error: unknown): string {
+  if (isAccessError(error)) return ACCESS_REQUIRED_MESSAGE
   if (error && typeof error === 'object' && 'message' in error) {
     const message = String((error as { message: string }).message)
     if (message.includes('Unauthorized')) return 'Oturum gerekli.'

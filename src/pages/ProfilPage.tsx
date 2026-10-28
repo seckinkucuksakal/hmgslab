@@ -12,6 +12,8 @@ import {
   updateLeaderboardVisibility,
 } from '../lib/profile-settings'
 import { routes } from '../lib/routes'
+import { getMyAccess, type MyAccess } from '../lib/access'
+import { formatIstanbulDateTimeShort } from '../lib/istanbul-time'
 
 function SettingsSection({
   title,
@@ -48,6 +50,20 @@ export function ProfilPage() {
   const [nameError, setNameError] = useState<string | null>(null)
   const [nameSuccess, setNameSuccess] = useState<string | null>(null)
   const [nameLoading, setNameLoading] = useState(false)
+
+  const [access, setAccess] = useState<MyAccess | null>(null)
+  const [accessError, setAccessError] = useState(false)
+
+  const loadAccess = () => {
+    setAccessError(false)
+    getMyAccess().then(setAccess).catch(() => setAccessError(true))
+  }
+
+  useEffect(() => {
+    getMyAccess()
+      .then(setAccess)
+      .catch(() => setAccessError(true))
+  }, [])
 
   const [visibilityError, setVisibilityError] = useState<string | null>(null)
   const [visibilityLoading, setVisibilityLoading] = useState(false)
@@ -230,6 +246,68 @@ export function ProfilPage() {
             {nameLoading ? 'Kaydediliyor…' : 'Adı kaydet'}
           </button>
         </form>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Paketim"
+        description="Erişim durumunuz sunucuda belirlenir; bu ekran yalnızca onu gösterir."
+      >
+        {accessError ? (
+          <p className="text-sm text-red-700 dark:text-red-300">
+            Paket bilgisi yüklenemedi.{' '}
+            <button type="button" onClick={loadAccess} className="font-medium underline">
+              Yeniden dene
+            </button>
+          </p>
+        ) : !access ? (
+          <p className="text-sm text-gray-500">Yükleniyor…</p>
+        ) : (
+          <dl className="space-y-2 text-sm text-gray-700 dark:text-slate-300">
+            <div className="flex justify-between gap-4">
+              <dt>Paket</dt>
+              <dd className="font-medium">
+                {access.status === 'free' ? 'Ücretsiz erişim' : (access.plan_name ?? '—')}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt>Durum</dt>
+              <dd className="font-medium">
+                {{
+                  free: 'Ücretsiz',
+                  active: 'Aktif',
+                  canceled: 'İptal edildi (süre sonuna kadar geçerli)',
+                  expired: 'Süresi doldu',
+                }[access.status]}
+              </dd>
+            </div>
+            {access.ends_at && (
+              <div className="flex justify-between gap-4">
+                <dt>{access.status === 'expired' ? 'Bitiş' : 'Erişim bitiş tarihi'}</dt>
+                <dd className="font-medium">
+                  {formatIstanbulDateTimeShort(access.ends_at)}
+                </dd>
+              </div>
+            )}
+            {access.enforced && access.status === 'free' && (
+              <p className="text-xs text-gray-500 dark:text-slate-400">
+                Ücretsiz erişimde {access.free_exam_limit} deneme çözebilirsiniz
+                ({access.free_exams_used} kullanıldı).
+              </p>
+            )}
+            {access.history_locked && (
+              <p className="text-xs text-red-700 dark:text-red-300">
+                Paketiniz sona erdiği için geçmiş sonuçlar ve analizler kilitli;
+                yenilediğinizde yeniden açılır.
+              </p>
+            )}
+            {!access.enforced && (
+              <p className="text-xs text-gray-500 dark:text-slate-400">
+                Şu an tüm aktif denemeler ücretsizdir. Ücretli paketler henüz
+                satışa açılmadı.
+              </p>
+            )}
+          </dl>
+        )}
       </SettingsSection>
 
       <SettingsSection

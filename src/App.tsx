@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AdminRoute } from './components/AdminRoute'
 import { AuthProvider } from './components/AuthProvider'
@@ -8,37 +9,37 @@ import { AdminLayout } from './components/layout/AdminLayout'
 import { AppLayout } from './components/layout/AppLayout'
 import { ExamLayout } from './components/layout/ExamLayout'
 import { ServerClockProvider } from './hooks/useServerClock'
-import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage'
-import { LoginPage } from './pages/auth/LoginPage'
-import { RegisterPage } from './pages/auth/RegisterPage'
-import { ResetPasswordPage } from './pages/auth/ResetPasswordPage'
-import { AdminCatalogPage } from './pages/admin/AdminCatalogPage'
-import { AdminEditExamPage } from './pages/admin/AdminEditExamPage'
-import { AdminEditQuestionPage } from './pages/admin/AdminEditQuestionPage'
-import { AdminExamsPage } from './pages/admin/AdminExamsPage'
-import { AdminNewExamPage } from './pages/admin/AdminNewExamPage'
-import { AdminNewQuestionPage } from './pages/admin/AdminNewQuestionPage'
-import { AdminQuestionsPage } from './pages/admin/AdminQuestionsPage'
-import { DenemelerPage } from './pages/DenemelerPage'
-import { ExamLeaderboardPage } from './pages/ExamLeaderboardPage'
-import { ExamCompletionPage } from './pages/exam/ExamCompletionPage'
-import { ExamLobbyPage } from './pages/exam/ExamLobbyPage'
-import { ExamResultPage } from './pages/exam/ExamResultPage'
-import { ExamTakePage } from './pages/exam/ExamTakePage'
-import { HomePage } from './pages/HomePage'
-import { LandingPage } from './pages/LandingPage'
-import { PerformansPage } from './pages/PerformansPage'
-import { ProfilPage } from './pages/ProfilPage'
-import { SonuclarPage } from './pages/SonuclarPage'
-import { SonucDetailPage } from './pages/SonucDetailPage'
 import { CookieConsent } from './components/CookieConsent'
-import {
-  CerezPolitikasiPage,
-  GizlilikPage,
-  KullanimKosullariPage,
-  KvkkPage,
-} from './pages/legal/LegalPages'
 import { routes } from './lib/routes'
+
+// Pages load on demand so the first paint ships only the shell, auth and routing.
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })))
+const LoginPage = lazy(() => import('./pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })))
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })))
+const AdminCatalogPage = lazy(() => import('./pages/admin/AdminCatalogPage').then((m) => ({ default: m.AdminCatalogPage })))
+const AdminEditExamPage = lazy(() => import('./pages/admin/AdminEditExamPage').then((m) => ({ default: m.AdminEditExamPage })))
+const AdminEditQuestionPage = lazy(() => import('./pages/admin/AdminEditQuestionPage').then((m) => ({ default: m.AdminEditQuestionPage })))
+const AdminExamsPage = lazy(() => import('./pages/admin/AdminExamsPage').then((m) => ({ default: m.AdminExamsPage })))
+const AdminNewExamPage = lazy(() => import('./pages/admin/AdminNewExamPage').then((m) => ({ default: m.AdminNewExamPage })))
+const AdminNewQuestionPage = lazy(() => import('./pages/admin/AdminNewQuestionPage').then((m) => ({ default: m.AdminNewQuestionPage })))
+const AdminQuestionsPage = lazy(() => import('./pages/admin/AdminQuestionsPage').then((m) => ({ default: m.AdminQuestionsPage })))
+const DenemelerPage = lazy(() => import('./pages/DenemelerPage').then((m) => ({ default: m.DenemelerPage })))
+const ExamLeaderboardPage = lazy(() => import('./pages/ExamLeaderboardPage').then((m) => ({ default: m.ExamLeaderboardPage })))
+const ExamCompletionPage = lazy(() => import('./pages/exam/ExamCompletionPage').then((m) => ({ default: m.ExamCompletionPage })))
+const ExamLobbyPage = lazy(() => import('./pages/exam/ExamLobbyPage').then((m) => ({ default: m.ExamLobbyPage })))
+const ExamResultPage = lazy(() => import('./pages/exam/ExamResultPage').then((m) => ({ default: m.ExamResultPage })))
+const ExamTakePage = lazy(() => import('./pages/exam/ExamTakePage').then((m) => ({ default: m.ExamTakePage })))
+const HomePage = lazy(() => import('./pages/HomePage').then((m) => ({ default: m.HomePage })))
+const LandingPage = lazy(() => import('./pages/LandingPage').then((m) => ({ default: m.LandingPage })))
+const PerformansPage = lazy(() => import('./pages/PerformansPage').then((m) => ({ default: m.PerformansPage })))
+const ProfilPage = lazy(() => import('./pages/ProfilPage').then((m) => ({ default: m.ProfilPage })))
+const SonuclarPage = lazy(() => import('./pages/SonuclarPage').then((m) => ({ default: m.SonuclarPage })))
+const SonucDetailPage = lazy(() => import('./pages/SonucDetailPage').then((m) => ({ default: m.SonucDetailPage })))
+const CerezPolitikasiPage = lazy(() => import('./pages/legal/LegalPages').then((m) => ({ default: m.CerezPolitikasiPage })))
+const GizlilikPage = lazy(() => import('./pages/legal/LegalPages').then((m) => ({ default: m.GizlilikPage })))
+const KullanimKosullariPage = lazy(() => import('./pages/legal/LegalPages').then((m) => ({ default: m.KullanimKosullariPage })))
+const KvkkPage = lazy(() => import('./pages/legal/LegalPages').then((m) => ({ default: m.KvkkPage })))
 
 function App() {
   return (
@@ -46,6 +47,13 @@ function App() {
       <ThemeProvider>
       <AuthProvider>
         <ServerClockProvider>
+          <Suspense
+            fallback={
+              <div className="flex min-h-screen items-center justify-center text-sm text-gray-500">
+                Yükleniyor…
+              </div>
+            }
+          >
           <Routes>
           <Route path="/" element={<LandingPage />} />
 
@@ -143,6 +151,7 @@ function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+          </Suspense>
         <CookieConsent />
         </ServerClockProvider>
       </AuthProvider>

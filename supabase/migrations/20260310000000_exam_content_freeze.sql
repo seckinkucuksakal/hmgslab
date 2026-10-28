@@ -141,18 +141,18 @@ declare
   v_n integer;
 begin
   if btrim(coalesce(p_exam.title, '')) = '' then
-    v_problems := v_problems || 'Deneme başlığı boş olamaz';
+    v_problems := array_append(v_problems, 'Deneme başlığı boş olamaz');
   end if;
 
   if p_exam.duration_minutes is null or p_exam.duration_minutes <= 0 then
-    v_problems := v_problems || 'Süre sıfırdan büyük olmalı';
+    v_problems := array_append(v_problems, 'Süre sıfırdan büyük olmalı');
   end if;
 
   select count(*) into v_count
   from public.exam_questions where exam_id = p_exam.id;
 
   if v_count = 0 then
-    v_problems := v_problems || 'Denemede en az bir soru olmalı';
+    v_problems := array_append(v_problems, 'Denemede en az bir soru olmalı');
   end if;
 
   select count(*) into v_n
@@ -160,7 +160,7 @@ begin
   join public.questions q on q.id = eq.question_id
   where eq.exam_id = p_exam.id and not q.is_active;
   if v_n > 0 then
-    v_problems := v_problems || format('%s soru pasif durumda', v_n);
+    v_problems := array_append(v_problems, format('%s soru pasif durumda', v_n));
   end if;
 
   select count(*) into v_n
@@ -169,8 +169,10 @@ begin
   join public.subjects s on s.id = q.subject_id
   where eq.exam_id = p_exam.id and not s.is_standard;
   if v_n > 0 then
-    v_problems := v_problems ||
-      format('%s sorunun dersi standart 19 ders kapsamı dışında (elle sınıflandırın)', v_n);
+    v_problems := array_append(
+      v_problems,
+      format('%s sorunun dersi standart 19 ders kapsamı dışında (elle sınıflandırın)', v_n)
+    );
   end if;
 
   select count(*) into v_n
@@ -186,15 +188,17 @@ begin
                  where qo.question_id = q.id and btrim(qo.option_text) = '')
     );
   if v_n > 0 then
-    v_problems := v_problems ||
-      format('%s sorunun metni veya seçenekleri geçersiz (5 dolu seçenek ve tek doğru cevap gerekir)', v_n);
+    v_problems := array_append(
+      v_problems,
+      format('%s sorunun metni veya seçenekleri geçersiz (5 dolu seçenek ve tek doğru cevap gerekir)', v_n)
+    );
   end if;
 
   if p_exam.exam_mode = 'scheduled' then
     if p_exam.scheduled_start_at is null then
-      v_problems := v_problems || 'Başlangıç tarihi ve saati gerekli';
+      v_problems := array_append(v_problems, 'Başlangıç tarihi ve saati gerekli');
     elsif p_exam.scheduled_start_at <= now() then
-      v_problems := v_problems || 'Başlangıç zamanı geçmişte; yayımlamak için ileri bir zaman seçin';
+      v_problems := array_append(v_problems, 'Başlangıç zamanı geçmişte; yayımlamak için ileri bir zaman seçin');
     end if;
   end if;
 

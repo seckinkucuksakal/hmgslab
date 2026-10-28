@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useServerClock } from '../../hooks/useServerClock'
 import {
@@ -20,11 +20,11 @@ export function ExamCompletionPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const countdownSeconds = useMemo(() => {
-    if (!embargo?.results_publish_at || !serverNow) return 0
-    const target = new Date(embargo.results_publish_at).getTime()
-    return Math.max(0, Math.floor((target - serverNow.getTime()) / 1000))
-  }, [embargo?.results_publish_at, serverNow])
+  const publishAt = embargo?.results_publish_at
+  const countdownSeconds =
+    publishAt && serverNow
+      ? Math.max(0, Math.floor((new Date(publishAt).getTime() - serverNow.getTime()) / 1000))
+      : 0
 
   useEffect(() => {
     if (!attemptId) return

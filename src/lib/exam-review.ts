@@ -1,3 +1,4 @@
+import { ACCESS_REQUIRED_MESSAGE, isAccessError } from './access'
 import { supabase } from './supabase'
 import type {
   AttemptReview,
@@ -72,6 +73,7 @@ export async function getAttemptReviewFull(
 }
 
 export function getReviewErrorMessage(error: unknown): string {
+  if (isAccessError(error)) return ACCESS_REQUIRED_MESSAGE
   if (error && typeof error === 'object' && 'message' in error) {
     const message = String((error as { message: string }).message)
     if (message.includes('Sonuç bulunamadı')) return message
