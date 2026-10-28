@@ -6,6 +6,8 @@ export type Subject = {
   slug: string
   sort_order: number | null
   is_active: boolean
+  /** True for the 19 fixed catalogue subjects; false for legacy leftovers. */
+  is_standard: boolean
   created_at: string
 }
 
@@ -45,9 +47,6 @@ export type QuestionOptionPublic = {
 export type QuestionOption = QuestionOptionPublic & {
   is_correct: boolean
 }
-
-export type SubjectInsert = Pick<Subject, 'name' | 'slug'> &
-  Partial<Pick<Subject, 'sort_order' | 'is_active'>>
 
 export type TopicInsert = Pick<Topic, 'subject_id' | 'name' | 'slug'> &
   Partial<Pick<Topic, 'sort_order' | 'is_active'>>

@@ -11,6 +11,8 @@ import type {
   UserPerformanceAnalytics,
 } from '../types/performance'
 import { formatPercent } from '../types/performance'
+import { fetchSubjects, orderSubjects } from '../lib/subject-catalog'
+import type { Subject } from '../types/question-bank'
 
 function PendingExamsSection({
   pending,
@@ -134,7 +136,77 @@ function SubjectRow({
   )
 }
 
+type SubjectStat = UserPerformanceAnalytics['subjects'][number]
+
+function EmptySubjectRow({ name }: { name: string }) {
+  return (
+    <li className="flex items-baseline justify-between gap-4 py-3">
+      <p className="text-sm font-medium text-gray-900">{name}</p>
+      <span className="shrink-0 text-xs text-gray-500">Henüz veri yok</span>
+    </li>
+  )
+}
+
+function SubjectPerformanceSection({
+  stats,
+  catalog,
+}: {
+  stats: SubjectStat[]
+  catalog: Subject[] | null
+}) {
+  const statById = new Map(stats.map((stat) => [stat.subject_id, stat]))
+
+  // Catalogue unavailable: fall back to listing whatever the analytics returned.
+  if (!catalog) {
+    return stats.length === 0 ? (
+      <p className="mt-3 text-sm text-gray-600">Ders bazında veri bulunmuyor.</p>
+    ) : (
+      <ul className="mt-4 divide-y divide-gray-200 border-y border-gray-200">
+        {stats.map((stat) => (
+          <SubjectRow key={stat.subject_id} subject={stat} />
+        ))}
+      </ul>
+    )
+  }
+
+  const standard = orderSubjects(catalog).filter((subject) => subject.is_standard)
+  const standardIds = new Set(standard.map((subject) => subject.id))
+  const legacyStats = stats.filter((stat) => !standardIds.has(stat.subject_id))
+
+  return (
+    <>
+      <ul className="mt-4 divide-y divide-gray-200 border-y border-gray-200">
+        {standard.map((subject) => {
+          const stat = statById.get(subject.id)
+          return stat ? (
+            <SubjectRow key={subject.id} subject={{ ...stat, subject_name: subject.name }} />
+          ) : (
+            <EmptySubjectRow key={subject.id} name={subject.name} />
+          )
+        })}
+      </ul>
+      {legacyStats.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-sm font-medium text-gray-900">
+            Kapsam dışı eski kayıtlar
+          </h3>
+          <p className="mt-1 text-xs text-gray-500">
+            Bu dersler standart 19 ders listesinde yer almaz; geçmiş sonuçlarınız
+            korunur.
+          </p>
+          <ul className="mt-4 divide-y divide-gray-200 border-y border-gray-200">
+            {legacyStats.map((stat) => (
+              <SubjectRow key={stat.subject_id} subject={stat} />
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  )
+}
+
 export function PerformansPage() {
+  const [catalog, setCatalog] = useState<Subject[] | null>(null)
   const [analytics, setAnalytics] = useState<UserPerformanceAnalytics | null>(
     null,
   )
@@ -146,6 +218,10 @@ export function PerformansPage() {
       .then(setAnalytics)
       .catch((err) => setError(getPerformanceErrorMessage(err)))
       .finally(() => setLoading(false))
+
+    fetchSubjects()
+      .then(setCatalog)
+      .catch(() => setCatalog(null))
   }, [])
 
   if (loading) {
@@ -192,10 +268,6 @@ export function PerformansPage() {
       </div>
     )
   }
-
-  const sortedSubjects = [...analytics.subjects].sort(
-    (a, b) => a.correct_percent - b.correct_percent,
-  )
 
   return (
     <div>
@@ -298,17 +370,10 @@ export function PerformansPage() {
           <h2 className="text-sm font-medium text-gray-900">
             Ders bazında performans
           </h2>
-          {sortedSubjects.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-600">
-              Ders bazında veri bulunmuyor.
-            </p>
-          ) : (
-            <ul className="mt-4 divide-y divide-gray-200 border-y border-gray-200">
-              {sortedSubjects.map((subject) => (
-                <SubjectRow key={subject.subject_id} subject={subject} />
-              ))}
-            </ul>
-          )}
+          <SubjectPerformanceSection
+            stats={analytics.subjects}
+            catalog={catalog}
+          />
         </section>
       </div>
     </div>

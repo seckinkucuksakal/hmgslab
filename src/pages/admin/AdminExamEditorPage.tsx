@@ -18,6 +18,7 @@ import {
   type ExamFormValues,
 } from '../../types/exam'
 import type { ExamMode, ResultsPublishMode } from '../../types/exam'
+import { fetchSubjects, subjectOptionLabel } from '../../lib/subject-catalog'
 import type { Difficulty, Subject, Topic } from '../../types/question-bank'
 
 type BankQuestion = {
@@ -119,10 +120,7 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(QUESTION_BANK_FETCH_LIMIT),
-      supabase
-        .from('subjects')
-        .select('id, name, slug, sort_order, is_active, created_at')
-        .order('sort_order', { ascending: true }),
+      fetchSubjects().catch(() => [] as Subject[]),
       supabase
         .from('topics')
         .select('id, subject_id, name, slug, sort_order, is_active, created_at')
@@ -135,7 +133,7 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
           topics: Array.isArray(row.topics) ? row.topics[0] : row.topics,
         })) as BankQuestion[],
       )
-      setSubjects(subjectsResult.data ?? [])
+      setSubjects(subjectsResult)
       setTopics(topicsResult.data ?? [])
     })
   }, [])
@@ -1020,7 +1018,7 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
             <option value="">Tüm dersler</option>
             {subjects.map((subject) => (
               <option key={subject.id} value={subject.id}>
-                {subject.name}
+                {subjectOptionLabel(subject)}
               </option>
             ))}
           </select>

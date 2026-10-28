@@ -20,6 +20,18 @@ export function getAdminErrorMessage(error: PostgrestError | Error | null): stri
   if (message.includes('question not found')) {
     return 'Soru bulunamadı.'
   }
+  if (message.includes('outside the standard catalogue')) {
+    return 'Seçilen ders standart ders kapsamında değil. Soru yalnızca 19 standart dersten birine bağlanabilir.'
+  }
+  if (message.includes('does not belong to the selected subject')) {
+    return 'Seçilen konu bu derse ait değil.'
+  }
+  if (message.includes('subject catalogue')) {
+    return 'Ders kataloğu sabittir; ders eklenemez, silinemez veya yeniden adlandırılamaz.'
+  }
+  if (message.includes('standard subjects cannot be deactivated')) {
+    return 'Standart dersler pasifleştirilemez.'
+  }
   if (message.includes('foreign key')) {
     return 'Seçilen ders veya konu geçersiz.'
   }

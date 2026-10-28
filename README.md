@@ -2,6 +2,10 @@
 
 Turkish online exam platform for law graduates.
 
+The user-defined 19-subject scope and phased development roadmap are recorded in
+[PROJECT_PLAN.md](./PROJECT_PLAN.md). Consult this document before changing the
+subject catalogue, question classification, or planned product behavior.
+
 ## Stack
 
 - React + TypeScript
@@ -143,6 +147,7 @@ All schema lives in `supabase/migrations/`, applied in filename order:
 | `20260306270000_exam_ranking` | Ranking and leaderboard RPCs |
 | `20260306280000_user_performance_analytics` | Topic snapshots, analytics RPC |
 | `20260306290000_phase11_security_hardening` | Answer-key lockdown, grant cleanup |
+| `20260308000000_standard_subject_catalog` | Fixed 19-subject catalogue, scope triggers, legacy subject report |
 
 Applying them in order against an empty project reproduces the current schema.
 There is no undocumented manual SQL; the only steps outside migrations are the

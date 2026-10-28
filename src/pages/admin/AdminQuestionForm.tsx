@@ -9,6 +9,10 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getAdminErrorMessage } from '../../lib/admin-errors'
 import { routes } from '../../lib/routes'
+import {
+  fetchSubjects,
+  subjectOptionLabel,
+} from '../../lib/subject-catalog'
 import type { Subject, Topic } from '../../types/question-bank'
 import {
   difficultyLabels,
@@ -37,6 +41,7 @@ export function AdminQuestionForm({ questionId }: AdminQuestionFormProps) {
   const questionRef = useRef<HTMLTextAreaElement>(null)
   const [values, setValues] = useState<QuestionFormValues>(emptyQuestionForm())
   const [subjects, setSubjects] = useState<Subject[]>([])
+  const [originalSubjectId, setOriginalSubjectId] = useState<string | null>(null)
   const [topics, setTopics] = useState<Topic[]>([])
   const [loading, setLoading] = useState(isEditing)
   const [saving, setSaving] = useState(false)
@@ -46,11 +51,9 @@ export function AdminQuestionForm({ questionId }: AdminQuestionFormProps) {
   const [success, setSuccess] = useState<string | null>(null)
 
   useEffect(() => {
-    supabase
-      .from('subjects')
-      .select('id, name, slug, sort_order, is_active, created_at')
-      .order('sort_order', { ascending: true })
-      .then(({ data }) => setSubjects(data ?? []))
+    fetchSubjects()
+      .then(setSubjects)
+      .catch(() => setGeneralError('Dersler yüklenemedi.'))
 
     supabase
       .from('topics')
@@ -90,6 +93,7 @@ export function AdminQuestionForm({ questionId }: AdminQuestionFormProps) {
         }
       }
 
+      setOriginalSubjectId(question.subject_id)
       setValues({
         subjectId: question.subject_id,
         topicId: question.topic_id,
@@ -110,6 +114,14 @@ export function AdminQuestionForm({ questionId }: AdminQuestionFormProps) {
       questionRef.current?.focus()
     }
   }, [isEditing, loading])
+
+  // Legacy (out-of-scope) subjects are offered only when the question being
+  // edited is still attached to one, so it is shown instead of silently moved.
+  const selectableSubjects = subjects.filter(
+    (subject) => subject.is_standard || subject.id === originalSubjectId,
+  )
+  const currentSubject = subjects.find((subject) => subject.id === values.subjectId)
+  const isLegacySubject = Boolean(currentSubject && !currentSubject.is_standard)
 
   const filteredTopics = topics.filter(
     (topic) => topic.subject_id === values.subjectId,
@@ -279,14 +291,20 @@ export function AdminQuestionForm({ questionId }: AdminQuestionFormProps) {
                 className={selectClass}
               >
                 <option value="">Seçin</option>
-                {subjects.map((subject) => (
+                {selectableSubjects.map((subject) => (
                   <option key={subject.id} value={subject.id}>
-                    {subject.name}
+                    {subjectOptionLabel(subject)}
                   </option>
                 ))}
               </select>
               {submitAttempted && fieldErrors.subjectId && (
                 <p className={fieldErrorClass}>{fieldErrors.subjectId}</p>
+              )}
+              {isLegacySubject && (
+                <p className="mt-1 text-xs text-amber-700">
+                  Bu soru standart ders kapsamı dışında. Dersi elle seçerek
+                  sınıflandırın; seçmezseniz mevcut bağlantı korunur.
+                </p>
               )}
             </div>
 

@@ -7,6 +7,7 @@ import {
   QUESTION_BANK_FETCH_LIMIT,
   difficultyLabels,
 } from '../../lib/question-form'
+import { fetchSubjects, subjectOptionLabel } from '../../lib/subject-catalog'
 import type { Subject, Topic } from '../../types/question-bank'
 import type { Difficulty } from '../../types/question-bank'
 
@@ -51,10 +52,7 @@ export function AdminQuestionsPage() {
         )
         .order('created_at', { ascending: false })
         .limit(QUESTION_BANK_FETCH_LIMIT),
-      supabase
-        .from('subjects')
-        .select('id, name, slug, sort_order, is_active, created_at')
-        .order('sort_order', { ascending: true }),
+      fetchSubjects().catch(() => [] as Subject[]),
       supabase
         .from('topics')
         .select('id, subject_id, name, slug, sort_order, is_active, created_at')
@@ -74,7 +72,7 @@ export function AdminQuestionsPage() {
         topics: Array.isArray(row.topics) ? row.topics[0] : row.topics,
       })) as QuestionRow[],
     )
-    setSubjects(subjectsResult.data ?? [])
+    setSubjects(subjectsResult)
     setTopics(topicsResult.data ?? [])
     setLoading(false)
   }
@@ -169,7 +167,7 @@ export function AdminQuestionsPage() {
           <option value="">Tüm dersler</option>
           {subjects.map((subject) => (
             <option key={subject.id} value={subject.id}>
-              {subject.name}
+              {subjectOptionLabel(subject)}
             </option>
           ))}
         </select>
@@ -232,7 +230,15 @@ export function AdminQuestionsPage() {
                   {question.question_text}
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                  <span>{question.subjects?.name ?? '—'}</span>
+                  <span>
+                    {question.subjects?.name ?? '—'}
+                    {subjects.find((s) => s.id === question.subject_id)?.is_standard ===
+                      false && (
+                      <span className="ml-1 rounded bg-amber-50 px-1.5 py-0.5 text-amber-700">
+                        kapsam dışı
+                      </span>
+                    )}
+                  </span>
                   <span aria-hidden="true">·</span>
                   <span>{question.topics?.name ?? '—'}</span>
                   <span aria-hidden="true">·</span>
