@@ -9,6 +9,7 @@ import {
   deleteOwnAccount,
   getProfileSettingsErrorMessage,
   updateDisplayName,
+  updateLeaderboardVisibility,
 } from '../lib/profile-settings'
 import { routes } from '../lib/routes'
 
@@ -47,6 +48,9 @@ export function ProfilPage() {
   const [nameError, setNameError] = useState<string | null>(null)
   const [nameSuccess, setNameSuccess] = useState<string | null>(null)
   const [nameLoading, setNameLoading] = useState(false)
+
+  const [visibilityError, setVisibilityError] = useState<string | null>(null)
+  const [visibilityLoading, setVisibilityLoading] = useState(false)
 
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
@@ -90,6 +94,22 @@ export function ProfilPage() {
       setNameError(getProfileSettingsErrorMessage(error))
     } finally {
       setNameLoading(false)
+    }
+  }
+
+  const handleVisibilityChange = async (show: boolean) => {
+    if (!user) return
+
+    setVisibilityError(null)
+    setVisibilityLoading(true)
+
+    try {
+      await updateLeaderboardVisibility(user.id, show)
+      await refetch()
+    } catch (error) {
+      setVisibilityError(getProfileSettingsErrorMessage(error))
+    } finally {
+      setVisibilityLoading(false)
     }
   }
 
@@ -210,6 +230,33 @@ export function ProfilPage() {
             {nameLoading ? 'Kaydediliyor…' : 'Adı kaydet'}
           </button>
         </form>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Sıralama gizliliği"
+        description="Bu denemenin katılımcıları arasındaki sıralamada diğer katılımcılara nasıl göründüğünüzü seçin."
+      >
+        {visibilityError && (
+          <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+            {visibilityError}
+          </p>
+        )}
+        <label className="flex items-start gap-3 text-sm text-gray-700 dark:text-slate-300">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={profile?.show_in_leaderboard ?? true}
+            disabled={visibilityLoading}
+            onChange={(event) => handleVisibilityChange(event.target.checked)}
+          />
+          <span>
+            Sıralamada adımı göster
+            <span className="mt-1 block text-xs text-gray-500 dark:text-slate-400">
+              Kapalıyken diğer katılımcılar sizi “Gizli Kullanıcı” olarak görür.
+              Kendi sıranızda adınızı her zaman görürsünüz.
+            </span>
+          </span>
+        </label>
       </SettingsSection>
 
       <SettingsSection

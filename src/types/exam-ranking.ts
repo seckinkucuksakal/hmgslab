@@ -25,7 +25,6 @@ export type LeaderboardEntry = {
   correct_count: number
   incorrect_count: number
   blank_count: number
-  submitted_at: string | null
 }
 
 export type ExamLeaderboard = {

@@ -18,7 +18,7 @@ export function RankingSummary({ ranking, leaderboardHref }: RankingSummaryProps
   return (
     <section className="mt-8 border-t border-gray-200 pt-8">
       <h2 className="text-sm font-medium text-gray-900">
-        Türkiye geneli sıralama
+        Bu denemenin katılımcıları arasındaki sıralama
       </h2>
 
       <div className="mt-4 space-y-2">

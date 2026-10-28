@@ -40,6 +40,18 @@ export async function updateDisplayName(
   if (metadataError) throw metadataError
 }
 
+export async function updateLeaderboardVisibility(
+  userId: string,
+  show: boolean,
+): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ show_in_leaderboard: show })
+    .eq('id', userId)
+
+  if (error) throw error
+}
+
 export async function changePassword(
   email: string,
   currentPassword: string,

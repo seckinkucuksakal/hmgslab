@@ -29,6 +29,8 @@ export function getRankingErrorMessage(error: unknown): string {
   if (error && typeof error === 'object' && 'message' in error) {
     const message = String((error as { message: string }).message)
     if (message.includes('bulunamadı')) return message
+    if (message.includes('henüz açıklanmadı')) return message
+    if (message.includes('tamamlamış olmalısınız')) return message
     if (message.includes('sıralamaya dahil değil')) return message
     if (message.includes('Unauthorized')) return 'Oturum gerekli.'
   }
