@@ -111,7 +111,7 @@ export function AdminExamsPage() {
                     <span aria-hidden="true">·</span>
                     <span>{exam.duration_minutes} dk</span>
                     <span aria-hidden="true">·</span>
-                    <span>{exam.is_active ? 'Aktif' : 'Pasif'}</span>
+                    <span>{exam.is_active ? 'Yayında' : 'Taslak'}</span>
                     <span aria-hidden="true">·</span>
                     <span>
                       {new Date(exam.updated_at).toLocaleDateString('tr-TR')}
@@ -130,7 +130,7 @@ export function AdminExamsPage() {
                     onClick={() => handleToggleActive(exam)}
                     className="text-gray-600 hover:underline"
                   >
-                    {exam.is_active ? 'Pasifleştir' : 'Aktifleştir'}
+                    {exam.is_active ? 'Yayından kaldır' : 'Yayımla'}
                   </button>
                 </div>
               </div>

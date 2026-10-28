@@ -18,7 +18,11 @@ import {
   type ExamFormValues,
 } from '../../types/exam'
 import type { ExamMode, ResultsPublishMode } from '../../types/exam'
-import { fetchSubjects, subjectOptionLabel } from '../../lib/subject-catalog'
+import {
+  fetchSubjects,
+  standardSubjectsOnly,
+  subjectOptionLabel,
+} from '../../lib/subject-catalog'
 import type { Difficulty, Subject, Topic } from '../../types/question-bank'
 
 type BankQuestion = {
@@ -87,6 +91,7 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
     resultsPublishDate: '',
     resultsPublishTime: '',
   })
+  const [hasAttempts, setHasAttempts] = useState(false)
   const [loadedResultsPublishAt, setLoadedResultsPublishAt] = useState<
     string | null
   >(null)
@@ -146,11 +151,16 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
     Promise.all([
       supabase.from('exams').select('*').eq('id', examId).single(),
       supabase
+        .from('exam_attempts')
+        .select('id', { count: 'exact', head: true })
+        .eq('exam_id', examId)
+        .then((result) => setHasAttempts((result.count ?? 0) > 0)),
+      supabase
         .from('exam_questions')
         .select('question_id, sort_order')
         .eq('exam_id', examId)
         .order('sort_order', { ascending: true }),
-    ]).then(async ([examResult, linksResult]) => {
+    ]).then(async ([examResult, , linksResult]) => {
       if (examResult.error || !examResult.data) {
         setGeneralError('Deneme yüklenemedi.')
         setLoading(false)
@@ -321,6 +331,47 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
       .filter((q): q is BankQuestion => Boolean(q))
   }, [bankQuestions, selectedIds])
 
+  const distribution = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const question of selectedQuestions) {
+      counts.set(question.subject_id, (counts.get(question.subject_id) ?? 0) + 1)
+    }
+    const standard = standardSubjectsOnly(subjects)
+    const rows = standard.map((subject) => ({
+      id: subject.id,
+      name: subject.name,
+      count: counts.get(subject.id) ?? 0,
+    }))
+    const standardIds = new Set(standard.map((subject) => subject.id))
+    const outOfScope = [...counts.entries()]
+      .filter(([id]) => !standardIds.has(id))
+      .reduce((sum, [, count]) => sum + count, 0)
+    return { rows, outOfScope, total: selectedQuestions.length }
+  }, [selectedQuestions, subjects])
+
+  const getPublishProblems = useCallback((): string[] => {
+    const problems: string[] = []
+    if (!values.title.trim()) problems.push('Deneme başlığı boş')
+    if (selectedIds.length === 0) problems.push('Denemede en az bir soru olmalı')
+    if (selectedQuestions.length < selectedIds.length) {
+      problems.push('Bazı seçili soruların bilgisi yüklenemedi')
+    }
+    if (distribution.outOfScope > 0) {
+      problems.push(
+        `${distribution.outOfScope} sorunun dersi standart 19 ders kapsamı dışında`,
+      )
+    }
+    if (!values.durationMinutes || values.durationMinutes <= 0) {
+      problems.push('Süre sıfırdan büyük olmalı')
+    }
+    if (values.examMode === 'scheduled' && schedulePreview) {
+      if (schedulePreview.start.getTime() <= Date.now() && !hasAttempts) {
+        problems.push('Başlangıç zamanı geçmişte')
+      }
+    }
+    return problems
+  }, [distribution.outOfScope, hasAttempts, schedulePreview, selectedIds.length, selectedQuestions.length, values.durationMinutes, values.examMode, values.title])
+
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
 
   const resultsAlreadyPublished = useMemo(() => {
@@ -455,60 +506,32 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
       ...(useCustomResults ? { results_publish_at: resultsPublishAt } : {}),
     }
 
-    let targetExamId = examId
-
-    if (isEditing && examId) {
-      const { error: updateError } = await supabase
-        .from('exams')
-        .update(examPayload)
-        .eq('id', examId)
-
-      if (updateError) {
-        setSaving(false)
-        setGeneralError(getAdminErrorMessage(updateError))
-        return
-      }
-    } else {
-      const { data: created, error: createError } = await supabase
-        .from('exams')
-        .insert(examPayload)
-        .select('id')
-        .single()
-
-      if (createError || !created) {
-        setSaving(false)
-        setGeneralError(getAdminErrorMessage(createError))
-        return
-      }
-
-      targetExamId = created.id
-    }
-
-    const { error: deleteError } = await supabase
-      .from('exam_questions')
-      .delete()
-      .eq('exam_id', targetExamId!)
-
-    if (deleteError) {
+    const publishProblems = values.isActive ? getPublishProblems() : []
+    if (publishProblems.length > 0) {
       setSaving(false)
-      setGeneralError(getAdminErrorMessage(deleteError))
+      setGeneralError(`Yayımlanamaz: ${publishProblems.join(' • ')}`)
       return
     }
 
-    const links = selectedIds.map((questionId, index) => ({
-      exam_id: targetExamId!,
-      question_id: questionId,
-      sort_order: index + 1,
-    }))
-
-    const { error: insertError } = await supabase.from('exam_questions').insert(links)
+    // One database transaction: exam fields and question links are saved
+    // together or not at all.
+    const { data: savedId, error: saveError } = await supabase.rpc(
+      'admin_save_exam',
+      {
+        p_exam_id: examId ?? null,
+        p_exam: examPayload,
+        p_question_ids: selectedIds,
+      },
+    )
 
     setSaving(false)
 
-    if (insertError) {
-      setGeneralError(getAdminErrorMessage(insertError))
+    if (saveError || !savedId) {
+      setGeneralError(getAdminErrorMessage(saveError))
       return
     }
+
+    const targetExamId = savedId as string
 
     setSuccess('Deneme kaydedildi.')
     setSubmitAttempted(false)
@@ -520,10 +543,10 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
       setLoadedResultsPublishAt(schedulePreview.results.toISOString())
     }
 
-    if (!isEditing && targetExamId) {
+    if (!isEditing) {
       navigate(routes.yonetimDenemeDuzenle(targetExamId), { replace: true })
     }
-  }, [examId, isEditing, navigate, schedulePreview, selectedIds, values])
+  }, [examId, getPublishProblems, isEditing, navigate, schedulePreview, selectedIds, values])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -606,6 +629,18 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
           />
         </div>
 
+        {hasAttempts ? (
+          <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            Bu sınav başladı: süre, tür, takvim ve sorular artık değiştirilemez.
+            Başlık, açıklama ve sonuç yayımlama ayarları düzenlenebilir.
+          </p>
+        ) : values.isActive ? (
+          <p className="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-600">
+            Yayındaki sınavın içeriği sabitlenmiştir. Soruları değiştirip
+            kaydederseniz sınav yeniden doğrulanır ve sabitlenir.
+          </p>
+        ) : null}
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="duration" className={labelClass}>
@@ -616,6 +651,7 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
               type="number"
               min={1}
               value={values.durationMinutes}
+              disabled={hasAttempts}
               onChange={(e) =>
                 setValues((c) => ({
                   ...c,
@@ -638,7 +674,7 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
                 checked={values.isActive}
                 onChange={() => setValues((c) => ({ ...c, isActive: true }))}
               />
-              Aktif
+              Yayında
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -647,7 +683,7 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
                 checked={!values.isActive}
                 onChange={() => setValues((c) => ({ ...c, isActive: false }))}
               />
-              Pasif
+              Taslak
             </label>
           </div>
         </div>
@@ -940,6 +976,34 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
             <p className={fieldErrorClass}>{fieldErrors.questions}</p>
           )}
         </div>
+
+        {distribution.total > 0 && (
+          <div className="mb-6 rounded-md border border-gray-200 p-4">
+            <p className="text-sm font-medium text-gray-900">
+              Ders dağılımı · toplam {distribution.total} soru
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              Bilgi amaçlıdır; ders başına zorunlu bir ağırlık yoktur.
+            </p>
+            <ul className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+              {distribution.rows.map((row) => (
+                <li
+                  key={row.id}
+                  className={`flex justify-between gap-3 ${row.count === 0 ? 'text-gray-400' : 'text-gray-800'}`}
+                >
+                  <span>{row.name}</span>
+                  <span className="tabular-nums">{row.count}</span>
+                </li>
+              ))}
+            </ul>
+            {distribution.outOfScope > 0 && (
+              <p className="mt-3 text-sm text-amber-700">
+                Kapsam dışı derslere bağlı {distribution.outOfScope} soru var;
+                bunlar sınıflandırılmadan yayımlanamaz.
+              </p>
+            )}
+          </div>
+        )}
 
         {selectedQuestions.length === 0 ? (
           <p className="text-sm text-gray-500">

@@ -32,6 +32,14 @@ export function getAdminErrorMessage(error: PostgrestError | Error | null): stri
   if (message.includes('standard subjects cannot be deactivated')) {
     return 'Standart dersler pasifleştirilemez.'
   }
+  if (
+    message.includes('yayımlanamaz') ||
+    message.includes('değiştirilemez') ||
+    message.includes('bir soru bulunamadı') ||
+    message.includes('birden fazla kez')
+  ) {
+    return error.message.replace(/^.*?(Yayımlanamaz|Başlamış|Yayındaki|Seçilen|Aynı)/, '$1')
+  }
   if (message.includes('foreign key')) {
     return 'Seçilen ders veya konu geçersiz.'
   }
