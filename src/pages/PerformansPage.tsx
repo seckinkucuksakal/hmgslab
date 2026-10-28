@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   getPerformanceErrorMessage,
@@ -8,11 +8,13 @@ import { PerformanceTrendChart } from '../components/performance/PerformanceTren
 import { formatIstanbulDateTimeShort } from '../lib/istanbul-time'
 import type {
   PendingExamPerformance,
+  TopicPerformanceStat,
   UserPerformanceAnalytics,
 } from '../types/performance'
 import { formatPercent } from '../types/performance'
 import { fetchSubjects, orderSubjects } from '../lib/subject-catalog'
-import type { Subject } from '../types/question-bank'
+import { supabase } from '../lib/supabase'
+import type { Subject, Topic } from '../types/question-bank'
 
 function PendingExamsSection({
   pending,
@@ -147,12 +149,70 @@ function EmptySubjectRow({ name }: { name: string }) {
   )
 }
 
+function TopicList({
+  subjectId,
+  topics,
+  topicStats,
+}: {
+  subjectId: string
+  topics: Topic[]
+  topicStats: TopicPerformanceStat[]
+}) {
+  const statById = new Map(topicStats.map((stat) => [stat.topic_id, stat]))
+  const subjectTopics = topics.filter((topic) => topic.subject_id === subjectId)
+  const known = new Set(subjectTopics.map((topic) => topic.id))
+  // Topics with results that are no longer in the active catalogue keep showing.
+  const extra = topicStats.filter(
+    (stat) => stat.subject_id === subjectId && !known.has(stat.topic_id),
+  )
+  if (subjectTopics.length === 0 && extra.length === 0) return null
+
+  return (
+    <li className="pb-3 pl-4">
+      <details>
+        <summary className="cursor-pointer text-xs text-gray-600">
+          Konular ({subjectTopics.length + extra.length})
+        </summary>
+        <ul className="mt-2 space-y-1">
+          {subjectTopics.map((topic) => {
+            const stat = statById.get(topic.id)
+            return (
+              <li key={topic.id} className="flex justify-between gap-3 text-xs">
+                <span className="text-gray-800">{topic.name}</span>
+                {stat ? (
+                  <span className="tabular-nums text-gray-700">
+                    %{stat.correct_percent} · {stat.correct}/{stat.answered}
+                  </span>
+                ) : (
+                  <span className="text-gray-500">Henüz veri yok</span>
+                )}
+              </li>
+            )
+          })}
+          {extra.map((stat) => (
+            <li key={stat.topic_id} className="flex justify-between gap-3 text-xs">
+              <span className="text-gray-800">{stat.topic_name}</span>
+              <span className="tabular-nums text-gray-700">
+                %{stat.correct_percent} · {stat.correct}/{stat.answered}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </li>
+  )
+}
+
 function SubjectPerformanceSection({
   stats,
   catalog,
+  topics,
+  topicStats,
 }: {
   stats: SubjectStat[]
   catalog: Subject[] | null
+  topics: Topic[]
+  topicStats: TopicPerformanceStat[]
 }) {
   const statById = new Map(stats.map((stat) => [stat.subject_id, stat]))
 
@@ -178,10 +238,19 @@ function SubjectPerformanceSection({
       <ul className="mt-4 divide-y divide-gray-200 border-y border-gray-200">
         {standard.map((subject) => {
           const stat = statById.get(subject.id)
-          return stat ? (
-            <SubjectRow key={subject.id} subject={{ ...stat, subject_name: subject.name }} />
-          ) : (
-            <EmptySubjectRow key={subject.id} name={subject.name} />
+          return (
+            <Fragment key={subject.id}>
+              {stat ? (
+                <SubjectRow subject={{ ...stat, subject_name: subject.name }} />
+              ) : (
+                <EmptySubjectRow name={subject.name} />
+              )}
+              <TopicList
+                subjectId={subject.id}
+                topics={topics}
+                topicStats={topicStats}
+              />
+            </Fragment>
           )
         })}
       </ul>
@@ -207,22 +276,42 @@ function SubjectPerformanceSection({
 
 export function PerformansPage() {
   const [catalog, setCatalog] = useState<Subject[] | null>(null)
+  const [catalogTopics, setCatalogTopics] = useState<Topic[]>([])
   const [analytics, setAnalytics] = useState<UserPerformanceAnalytics | null>(
     null,
   )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const load = useCallback(() => {
     getUserPerformanceAnalytics()
-      .then(setAnalytics)
+      .then((data) => {
+        setAnalytics(data)
+        setError(null)
+      })
       .catch((err) => setError(getPerformanceErrorMessage(err)))
       .finally(() => setLoading(false))
 
     fetchSubjects()
       .then(setCatalog)
       .catch(() => setCatalog(null))
+
+    supabase
+      .from('topics')
+      .select('id, subject_id, name, slug, sort_order, is_active, created_at')
+      .order('sort_order', { ascending: true })
+      .then(({ data }) => setCatalogTopics(data ?? []))
   }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const retry = () => {
+    setLoading(true)
+    setError(null)
+    load()
+  }
 
   if (loading) {
     return <p className="text-sm text-gray-500">Yükleniyor…</p>
@@ -230,9 +319,12 @@ export function PerformansPage() {
 
   if (error) {
     return (
-      <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-        {error}
-      </p>
+      <div className="flex flex-wrap items-center gap-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <span>{error}</span>
+        <button type="button" onClick={retry} className="font-medium underline">
+          Yeniden dene
+        </button>
+      </div>
     )
   }
 
@@ -373,6 +465,8 @@ export function PerformansPage() {
           <SubjectPerformanceSection
             stats={analytics.subjects}
             catalog={catalog}
+            topics={catalogTopics}
+            topicStats={analytics.topics}
           />
         </section>
       </div>

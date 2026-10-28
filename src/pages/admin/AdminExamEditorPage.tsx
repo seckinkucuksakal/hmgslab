@@ -8,10 +8,10 @@ import {
   istanbulLocalToTimestamptz,
 } from '../../lib/live-exam'
 import { formatIstanbulDateTimeShort } from '../../lib/istanbul-time'
-import {
-  QUESTION_BANK_FETCH_LIMIT,
-  difficultyLabels,
-} from '../../lib/question-form'
+import { difficultyLabels } from '../../lib/question-form'
+import { fetchQuestionsByIds } from '../../lib/question-search'
+import { useQuestionSearch } from '../../hooks/useQuestionSearch'
+import { QuestionListStatus, QuestionPager } from '../../components/admin/QuestionPager'
 import {
   validateExamForm,
   type ExamFormErrors,
@@ -97,7 +97,11 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
   >(null)
   const [publishingResults, setPublishingResults] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [bankQuestions, setBankQuestions] = useState<BankQuestion[]>([])
+  // Details of every selected question, kept across bank pages/filters.
+  const [selectedCache, setSelectedCache] = useState<Map<string, BankQuestion>>(
+    () => new Map(),
+  )
+  const bank = useQuestionSearch({ forceActive: true })
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [topics, setTopics] = useState<Topic[]>([])
   const [loading, setLoading] = useState(isEditing)
@@ -107,37 +111,18 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
   const [generalError, setGeneralError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  const [search, setSearch] = useState('')
-  const [subjectFilter, setSubjectFilter] = useState('')
-  const [topicFilter, setTopicFilter] = useState('')
-  const [difficultyFilter, setDifficultyFilter] = useState('')
   const [schedulePreview, setSchedulePreview] = useState<SchedulePreview | null>(
     null,
   )
 
   useEffect(() => {
     Promise.all([
-      supabase
-        .from('questions')
-        .select(
-          'id, question_text, difficulty, subject_id, topic_id, subjects(name), topics(name)',
-        )
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(QUESTION_BANK_FETCH_LIMIT),
       fetchSubjects().catch(() => [] as Subject[]),
       supabase
         .from('topics')
         .select('id, subject_id, name, slug, sort_order, is_active, created_at')
         .order('sort_order', { ascending: true }),
-    ]).then(([questionsResult, subjectsResult, topicsResult]) => {
-      setBankQuestions(
-        (questionsResult.data ?? []).map((row) => ({
-          ...row,
-          subjects: Array.isArray(row.subjects) ? row.subjects[0] : row.subjects,
-          topics: Array.isArray(row.topics) ? row.topics[0] : row.topics,
-        })) as BankQuestion[],
-      )
+    ]).then(([subjectsResult, topicsResult]) => {
       setSubjects(subjectsResult)
       setTopics(topicsResult.data ?? [])
     })
@@ -201,25 +186,15 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
       setSelectedIds(ids)
 
       if (ids.length > 0) {
-        const { data: linkedQuestions } = await supabase
-          .from('questions')
-          .select(
-            'id, question_text, difficulty, subject_id, topic_id, subjects(name), topics(name)',
-          )
-          .in('id', ids)
-
-        if (linkedQuestions) {
-          setBankQuestions((current) => {
-            const map = new Map(current.map((q) => [q.id, q]))
-            for (const row of linkedQuestions) {
-              map.set(row.id, {
-                ...row,
-                subjects: Array.isArray(row.subjects) ? row.subjects[0] : row.subjects,
-                topics: Array.isArray(row.topics) ? row.topics[0] : row.topics,
-              } as BankQuestion)
-            }
-            return Array.from(map.values())
+        try {
+          const linked = await fetchQuestionsByIds(ids)
+          setSelectedCache((current) => {
+            const next = new Map(current)
+            for (const row of linked) next.set(row.id, row)
+            return next
           })
+        } catch {
+          setGeneralError('Seçili soruların bilgisi yüklenemedi.')
         }
       }
 
@@ -229,26 +204,11 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
 
   const filteredTopics = useMemo(
     () =>
-      subjectFilter
-        ? topics.filter((topic) => topic.subject_id === subjectFilter)
+      bank.subjectId
+        ? topics.filter((topic) => topic.subject_id === bank.subjectId)
         : topics,
-    [topics, subjectFilter],
+    [topics, bank.subjectId],
   )
-
-  const filteredBank = useMemo(() => {
-    return bankQuestions.filter((question) => {
-      if (subjectFilter && question.subject_id !== subjectFilter) return false
-      if (topicFilter && question.topic_id !== topicFilter) return false
-      if (difficultyFilter && question.difficulty !== difficultyFilter) return false
-      if (search.trim()) {
-        const term = search.trim().toLocaleLowerCase('tr')
-        if (!question.question_text.toLocaleLowerCase('tr').includes(term)) {
-          return false
-        }
-      }
-      return true
-    })
-  }, [bankQuestions, subjectFilter, topicFilter, difficultyFilter, search])
 
   useEffect(() => {
     if (
@@ -325,11 +285,10 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
   ])
 
   const selectedQuestions = useMemo(() => {
-    const map = new Map(bankQuestions.map((q) => [q.id, q]))
     return selectedIds
-      .map((id) => map.get(id))
+      .map((id) => selectedCache.get(id))
       .filter((q): q is BankQuestion => Boolean(q))
-  }, [bankQuestions, selectedIds])
+  }, [selectedCache, selectedIds])
 
   const distribution = useMemo(() => {
     const counts = new Map<string, number>()
@@ -431,7 +390,9 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
     }
   }
 
-  const toggleQuestion = (questionId: string) => {
+  const toggleQuestion = (question: BankQuestion) => {
+    const questionId = question.id
+    setSelectedCache((current) => new Map(current).set(questionId, question))
     setSelectedIds((current) =>
       current.includes(questionId)
         ? current.filter((id) => id !== questionId)
@@ -1067,16 +1028,13 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
           <input
             type="search"
             placeholder="Ara…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={bank.search}
+            onChange={(e) => bank.setSearch(e.target.value)}
             className={filterClass}
           />
           <select
-            value={subjectFilter}
-            onChange={(e) => {
-              setSubjectFilter(e.target.value)
-              setTopicFilter('')
-            }}
+            value={bank.subjectId}
+            onChange={(e) => bank.setSubjectId(e.target.value)}
             className={filterClass}
           >
             <option value="">Tüm dersler</option>
@@ -1087,8 +1045,8 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
             ))}
           </select>
           <select
-            value={topicFilter}
-            onChange={(e) => setTopicFilter(e.target.value)}
+            value={bank.topicId}
+            onChange={(e) => bank.setTopicId(e.target.value)}
             className={filterClass}
           >
             <option value="">Tüm konular</option>
@@ -1099,8 +1057,8 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
             ))}
           </select>
           <select
-            value={difficultyFilter}
-            onChange={(e) => setDifficultyFilter(e.target.value)}
+            value={bank.difficulty}
+            onChange={(e) => bank.setDifficulty(e.target.value)}
             className={filterClass}
           >
             <option value="">Tüm zorluklar</option>
@@ -1112,11 +1070,17 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
           </select>
         </div>
 
-        {filteredBank.length === 0 ? (
-          <p className="text-sm text-gray-500">Soru bulunamadı.</p>
+        <QuestionListStatus state={bank} />
+
+        {bank.loading && bank.rows.length === 0 ? (
+          <p className="text-sm text-gray-500">Yükleniyor…</p>
+        ) : bank.failed ? null : bank.rows.length === 0 ? (
+          <p className="text-sm text-gray-500">Bu filtrelerle eşleşen soru bulunamadı.</p>
         ) : (
-          <ul className="divide-y divide-gray-200 border-y border-gray-200">
-            {filteredBank.map((question) => {
+          <ul
+            className={`divide-y divide-gray-200 border-y border-gray-200 ${bank.loading ? 'opacity-60' : ''}`}
+          >
+            {bank.rows.map((question) => {
               const isSelected = selectedSet.has(question.id)
               return (
                 <li
@@ -1135,7 +1099,7 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
                   </div>
                   <button
                     type="button"
-                    onClick={() => toggleQuestion(question.id)}
+                    onClick={() => toggleQuestion(question)}
                     className={`shrink-0 rounded-md border px-3 py-1 text-xs font-medium ${
                       isSelected
                         ? 'border-gray-900 bg-gray-900 text-white'
@@ -1149,6 +1113,7 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
             })}
           </ul>
         )}
+        <QuestionPager state={bank} />
       </section>
 
       <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-gray-200 pt-6">

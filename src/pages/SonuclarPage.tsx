@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import {
-  ATTEMPT_RESULTS_PAGE_SIZE,
-  fetchAttemptResults,
+  fetchAttemptResultsPage,
   getReviewErrorMessage,
+  type ResultsCursor,
 } from '../lib/exam-review'
 import { formatIstanbulDateTimeShort } from '../lib/istanbul-time'
 import { formatExamScore } from '../lib/exam-score'
@@ -14,17 +14,65 @@ import { isResultEmbargo } from '../types/exam-review'
 export function SonuclarPage() {
   const { user } = useAuth()
   const [results, setResults] = useState<AttemptResultListItem[]>([])
+  const [cursor, setCursor] = useState<ResultsCursor | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const requestRef = useRef(0)
+
+  // Initial page and "load more" share one path; a superseded response
+  // (older request id) never overwrites newer state.
+  const load = useCallback(async (from: ResultsCursor | null) => {
+    const requestId = ++requestRef.current
+
+    try {
+      const page = await fetchAttemptResultsPage(from)
+      if (requestId !== requestRef.current) return
+      setError(null)
+      setResults((current) => {
+        if (!from) return page.items
+        const seen = new Set(current.map((item) => item.id))
+        return [...current, ...page.items.filter((item) => !seen.has(item.id))]
+      })
+      setCursor(page.next_cursor)
+    } catch (err) {
+      if (requestId !== requestRef.current) return
+      setError(getReviewErrorMessage(err))
+    } finally {
+      if (requestId === requestRef.current) {
+        setLoading(false)
+        setLoadingMore(false)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!user) return
-
-    fetchAttemptResults(user.id)
-      .then(setResults)
-      .catch((err) => setError(getReviewErrorMessage(err)))
-      .finally(() => setLoading(false))
+    let cancelled = false
+    fetchAttemptResultsPage(null)
+      .then((page) => {
+        if (cancelled || requestRef.current > 0) return
+        setResults(page.items)
+        setCursor(page.next_cursor)
+      })
+      .catch((err) => {
+        if (cancelled || requestRef.current > 0) return
+        setError(getReviewErrorMessage(err))
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [user])
+
+  const retry = (from: ResultsCursor | null) => {
+    setError(null)
+    if (from) setLoadingMore(true)
+    else setLoading(true)
+    void load(from)
+  }
 
   return (
     <div>
@@ -34,14 +82,21 @@ export function SonuclarPage() {
       </p>
 
       {error && (
-        <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => retry(results.length > 0 ? cursor : null)}
+            className="font-medium underline"
+          >
+            Yeniden dene
+          </button>
+        </div>
       )}
 
       {loading ? (
         <p className="mt-6 text-sm text-gray-500">Yükleniyor…</p>
-      ) : results.length === 0 ? (
+      ) : results.length === 0 && !error ? (
         <p className="mt-6 text-sm text-gray-600">
           Henüz tamamladığınız bir deneme bulunmuyor.
         </p>
@@ -105,10 +160,15 @@ export function SonuclarPage() {
         </ul>
       )}
 
-      {!loading && results.length >= ATTEMPT_RESULTS_PAGE_SIZE && (
-        <p className="mt-4 text-xs text-gray-500">
-          En son {ATTEMPT_RESULTS_PAGE_SIZE} deneme gösteriliyor.
-        </p>
+      {!loading && cursor && (
+        <button
+          type="button"
+          disabled={loadingMore}
+          onClick={() => retry(cursor)}
+          className="mt-6 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          {loadingMore ? 'Yükleniyor…' : 'Daha eski sonuçları göster'}
+        </button>
       )}
     </div>
   )

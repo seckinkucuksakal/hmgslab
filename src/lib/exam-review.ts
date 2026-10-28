@@ -21,6 +21,28 @@ export async function fetchAttemptResults(
   return (data ?? []) as AttemptResultListItem[]
 }
 
+export type ResultsCursor = { submitted_at: string | null; id: string }
+
+export type AttemptResultsPage = {
+  items: AttemptResultListItem[]
+  next_cursor: ResultsCursor | null
+}
+
+/** Keyset-paginated history (newest first, stable across new results). */
+export async function fetchAttemptResultsPage(
+  cursor: ResultsCursor | null,
+  limit = ATTEMPT_RESULTS_PAGE_SIZE,
+): Promise<AttemptResultsPage> {
+  const { data, error } = await supabase.rpc('get_attempt_results_page', {
+    p_limit: limit,
+    p_cursor_submitted_at: cursor ? (cursor.submitted_at ?? '-infinity') : null,
+    p_cursor_id: cursor?.id ?? null,
+  })
+
+  if (error) throw error
+  return data as AttemptResultsPage
+}
+
 export async function fetchRecentAttemptResults(
   userId: string,
   limit = 3,

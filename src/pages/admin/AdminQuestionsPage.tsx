@@ -3,108 +3,46 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getAdminErrorMessage } from '../../lib/admin-errors'
 import { routes } from '../../lib/routes'
-import {
-  QUESTION_BANK_FETCH_LIMIT,
-  difficultyLabels,
-} from '../../lib/question-form'
+import { difficultyLabels } from '../../lib/question-form'
+import type { QuestionListRow } from '../../lib/question-search'
+import { useQuestionSearch } from '../../hooks/useQuestionSearch'
+import { QuestionListStatus, QuestionPager } from '../../components/admin/QuestionPager'
 import { fetchSubjects, subjectOptionLabel } from '../../lib/subject-catalog'
 import type { Subject, Topic } from '../../types/question-bank'
-import type { Difficulty } from '../../types/question-bank'
 
-type QuestionRow = {
-  id: string
-  question_text: string
-  difficulty: Difficulty
-  is_active: boolean
-  created_at: string
-  subject_id: string
-  topic_id: string
-  subjects: { name: string } | null
-  topics: { name: string } | null
-}
+type QuestionRow = QuestionListRow
 
 const inputClass =
   'rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500'
 
 export function AdminQuestionsPage() {
   const navigate = useNavigate()
-  const [questions, setQuestions] = useState<QuestionRow[]>([])
+  const list = useQuestionSearch()
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [topics, setTopics] = useState<Topic[]>([])
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
-  const [subjectFilter, setSubjectFilter] = useState('')
-  const [topicFilter, setTopicFilter] = useState('')
-  const [difficultyFilter, setDifficultyFilter] = useState('')
-  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
-  const loadData = async () => {
-    setLoading(true)
-    setError(null)
-
-    const [questionsResult, subjectsResult, topicsResult] = await Promise.all([
-      supabase
-        .from('questions')
-        .select(
-          'id, question_text, difficulty, is_active, created_at, subject_id, topic_id, subjects(name), topics(name)',
-        )
-        .order('created_at', { ascending: false })
-        .limit(QUESTION_BANK_FETCH_LIMIT),
+  useEffect(() => {
+    Promise.all([
       fetchSubjects().catch(() => [] as Subject[]),
       supabase
         .from('topics')
         .select('id, subject_id, name, slug, sort_order, is_active, created_at')
         .order('sort_order', { ascending: true }),
-    ])
-
-    if (questionsResult.error) {
-      setError(getAdminErrorMessage(questionsResult.error))
-      setLoading(false)
-      return
-    }
-
-    setQuestions(
-      (questionsResult.data ?? []).map((row) => ({
-        ...row,
-        subjects: Array.isArray(row.subjects) ? row.subjects[0] : row.subjects,
-        topics: Array.isArray(row.topics) ? row.topics[0] : row.topics,
-      })) as QuestionRow[],
-    )
-    setSubjects(subjectsResult)
-    setTopics(topicsResult.data ?? [])
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    loadData()
+    ]).then(([loadedSubjects, topicsResult]) => {
+      setSubjects(loadedSubjects)
+      setTopics(topicsResult.data ?? [])
+    })
   }, [])
 
   const filteredTopics = useMemo(
     () =>
-      subjectFilter
-        ? topics.filter((topic) => topic.subject_id === subjectFilter)
+      list.subjectId
+        ? topics.filter((topic) => topic.subject_id === list.subjectId)
         : topics,
-    [topics, subjectFilter],
+    [topics, list.subjectId],
   )
-
-  const filteredQuestions = useMemo(() => {
-    return questions.filter((question) => {
-      if (subjectFilter && question.subject_id !== subjectFilter) return false
-      if (topicFilter && question.topic_id !== topicFilter) return false
-      if (difficultyFilter && question.difficulty !== difficultyFilter) return false
-      if (activeFilter === 'active' && !question.is_active) return false
-      if (activeFilter === 'inactive' && question.is_active) return false
-      if (search.trim()) {
-        const term = search.trim().toLocaleLowerCase('tr')
-        if (!question.question_text.toLocaleLowerCase('tr').includes(term)) {
-          return false
-        }
-      }
-      return true
-    })
-  }, [questions, subjectFilter, topicFilter, difficultyFilter, activeFilter, search])
 
   const handleArchiveToggle = async (
     event: MouseEvent,
@@ -127,7 +65,7 @@ export function AdminQuestionsPage() {
       return
     }
 
-    await loadData()
+    list.reload()
     setTogglingId(null)
   }
 
@@ -152,16 +90,13 @@ export function AdminQuestionsPage() {
         <input
           type="search"
           placeholder="Ara…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={list.search}
+          onChange={(e) => list.setSearch(e.target.value)}
           className={inputClass}
         />
         <select
-          value={subjectFilter}
-          onChange={(e) => {
-            setSubjectFilter(e.target.value)
-            setTopicFilter('')
-          }}
+          value={list.subjectId}
+          onChange={(e) => list.setSubjectId(e.target.value)}
           className={inputClass}
         >
           <option value="">Tüm dersler</option>
@@ -172,8 +107,8 @@ export function AdminQuestionsPage() {
           ))}
         </select>
         <select
-          value={topicFilter}
-          onChange={(e) => setTopicFilter(e.target.value)}
+          value={list.topicId}
+          onChange={(e) => list.setTopicId(e.target.value)}
           className={inputClass}
         >
           <option value="">Tüm konular</option>
@@ -184,8 +119,8 @@ export function AdminQuestionsPage() {
           ))}
         </select>
         <select
-          value={difficultyFilter}
-          onChange={(e) => setDifficultyFilter(e.target.value)}
+          value={list.difficulty}
+          onChange={(e) => list.setDifficulty(e.target.value)}
           className={inputClass}
         >
           <option value="">Tüm zorluklar</option>
@@ -196,9 +131,9 @@ export function AdminQuestionsPage() {
           ))}
         </select>
         <select
-          value={activeFilter}
+          value={list.active}
           onChange={(e) =>
-            setActiveFilter(e.target.value as 'all' | 'active' | 'inactive')
+            list.setActive(e.target.value as 'all' | 'active' | 'inactive')
           }
           className={inputClass}
         >
@@ -214,13 +149,19 @@ export function AdminQuestionsPage() {
         </p>
       )}
 
-      {loading ? (
+      <QuestionListStatus state={list} />
+
+      {list.loading && list.rows.length === 0 ? (
         <p className="mt-6 text-sm text-gray-500">Yükleniyor…</p>
-      ) : filteredQuestions.length === 0 ? (
-        <p className="mt-6 text-sm text-gray-600">Soru bulunamadı.</p>
+      ) : list.failed ? null : list.rows.length === 0 ? (
+        <p className="mt-6 text-sm text-gray-600">
+          {list.total === 0 && (list.search || list.subjectId || list.topicId || list.difficulty || list.active !== 'all')
+            ? 'Bu filtrelerle eşleşen soru bulunamadı.'
+            : 'Soru bulunamadı.'}
+        </p>
       ) : (
-        <ul className="mt-2 divide-y divide-gray-200">
-          {filteredQuestions.map((question) => (
+        <ul className={`mt-2 divide-y divide-gray-200 ${list.loading ? 'opacity-60' : ''}`}>
+          {list.rows.map((question) => (
             <li key={question.id}>
               <Link
                 to={routes.yonetimSoruDuzenle(question.id)}
@@ -275,12 +216,7 @@ export function AdminQuestionsPage() {
         </ul>
       )}
 
-      {!loading && questions.length >= QUESTION_BANK_FETCH_LIMIT && (
-        <p className="mt-4 text-xs text-gray-500">
-          En yeni {QUESTION_BANK_FETCH_LIMIT} soru yüklendi. Daha eski soruları
-          görmek için ders ve konu filtrelerini kullanın.
-        </p>
-      )}
+      <QuestionPager state={list} />
     </div>
   )
 }

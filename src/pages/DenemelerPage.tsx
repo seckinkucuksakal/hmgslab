@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import {
@@ -8,6 +8,7 @@ import {
 } from '../lib/live-exam'
 import {
   getExamErrorMessage,
+  getPostSubmitPath,
   startExamAttempt,
   syncExamAttempt,
 } from '../lib/exam-session'
@@ -20,17 +21,79 @@ export function DenemelerPage() {
   const navigate = useNavigate()
   const [exams, setExams] = useState<StudentExamListItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busyExamId, setBusyExamId] = useState<string | null>(null)
+  const requestRef = useRef(0)
+  const inFlightRef = useRef(false)
+
+  // One batched request; a response is applied only if it belongs to the
+  // latest request, and refreshes never overlap.
+  const refresh = useCallback(async () => {
+    if (inFlightRef.current) return
+    inFlightRef.current = true
+    const requestId = ++requestRef.current
+
+    try {
+      const list = await fetchStudentExams()
+      if (requestId !== requestRef.current) return
+      setExams(list)
+      setLoadError(null)
+    } catch (err) {
+      if (requestId !== requestRef.current) return
+      setLoadError(getLiveExamErrorMessage(err))
+    } finally {
+      inFlightRef.current = false
+      if (requestId === requestRef.current) setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (!user) return
 
-    fetchStudentExams(user.id)
-      .then(setExams)
-      .catch((err) => setError(getLiveExamErrorMessage(err)))
-      .finally(() => setLoading(false))
-  }, [user])
+    let cancelled = false
+    fetchStudentExams()
+      .then((list) => {
+        if (cancelled || requestRef.current > 0) return
+        setExams(list)
+        setLoadError(null)
+      })
+      .catch((err) => {
+        if (cancelled || requestRef.current > 0) return
+        setLoadError(getLiveExamErrorMessage(err))
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refresh()
+    }
+    const timer = window.setInterval(onVisible, 30_000)
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    window.addEventListener('online', onVisible)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+      window.removeEventListener('online', onVisible)
+    }
+  }, [user, refresh])
+
+  // The list may be stale: confirm the attempt is still running before
+  // opening it, otherwise go to the screen matching its real state.
+  const resumeAttempt = async (attemptId: string) => {
+    const current = await syncExamAttempt(attemptId)
+    if (current.status !== 'in_progress') {
+      void refresh()
+      navigate(getPostSubmitPath(attemptId, current), { replace: false })
+      return
+    }
+    navigate(`/sinav/${attemptId}`)
+  }
 
   const handleExamAction = async (exam: StudentExamListItem) => {
     setBusyExamId(exam.id)
@@ -39,8 +102,7 @@ export function DenemelerPage() {
     try {
       if (exam.exam_mode === 'scheduled') {
         if (exam.in_progress_attempt_id) {
-          await syncExamAttempt(exam.in_progress_attempt_id)
-          navigate(`/sinav/${exam.in_progress_attempt_id}`)
+          await resumeAttempt(exam.in_progress_attempt_id)
           return
         }
 
@@ -69,8 +131,7 @@ export function DenemelerPage() {
       }
 
       if (exam.in_progress_attempt_id) {
-        await syncExamAttempt(exam.in_progress_attempt_id)
-        navigate(`/sinav/${exam.in_progress_attempt_id}`)
+        await resumeAttempt(exam.in_progress_attempt_id)
         return
       }
 
@@ -137,9 +198,29 @@ export function DenemelerPage() {
         </p>
       )}
 
+      {loadError && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <span>
+            {exams.length > 0
+              ? 'Liste güncellenemedi; son bilinen durum gösteriliyor.'
+              : loadError}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              if (exams.length === 0) setLoading(true)
+              void refresh()
+            }}
+            className="font-medium underline"
+          >
+            Yeniden dene
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <p className="mt-6 text-sm text-gray-500">Yükleniyor…</p>
-      ) : exams.length === 0 ? (
+      ) : exams.length === 0 && loadError ? null : exams.length === 0 ? (
         <p className="mt-6 text-sm text-gray-600">
           Şu an başlatılabilir deneme bulunmuyor.
         </p>

@@ -51,6 +51,8 @@ export type StudentExamListItem = {
   can_enter_lobby: boolean
   can_enter_exam: boolean
   results_available: boolean
+  seconds_until_start?: number
+  server_now?: string
 }
 
 export const liveExamStateLabels: Record<LiveExamState, string> = {
