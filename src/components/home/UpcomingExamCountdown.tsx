@@ -18,6 +18,7 @@ import {
   getCountdownParts,
 } from '../../lib/istanbul-time'
 import { routes } from '../../lib/routes'
+import { useConfirm } from '../../hooks/useConfirm'
 
 const POLL_MS = 30_000
 
@@ -52,6 +53,7 @@ export function UpcomingExamCountdown({ userId }: UpcomingExamCountdownProps) {
   const [loading, setLoading] = useState(true)
   const [enrolling, setEnrolling] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const confirm = useConfirm()
 
   const load = useCallback(async () => {
     try {
@@ -97,11 +99,23 @@ export function UpcomingExamCountdown({ userId }: UpcomingExamCountdownProps) {
 
   const handleEnroll = async () => {
     if (!exam) return
-    const confirmed = window.confirm(
-      `"${exam.title}" sınavına kaydolmak 1 deneme hakkınızı kullanır.\n` +
-        'Sınava katılmazsanız hakkınız giriş süresi bitince iade edilir.\n\n' +
-        'Kaydolmak istiyor musunuz?',
-    )
+    const confirmed = await confirm({
+      title: 'Canlı sınava kaydol',
+      message: (
+        <>
+          <span className="font-medium text-gray-900 dark:text-slate-100">{exam.title}</span>
+          {' için kaydın 1 deneme hakkı kullanır. Sınava katılmazsan hakkın giriş süresi bitince iade edilir.'}
+        </>
+      ),
+      details:
+        balance !== null
+          ? [
+              { label: 'Kullanılacak hak', value: 1 },
+              { label: 'Kayıttan sonra kalan', value: balance - 1 },
+            ]
+          : undefined,
+      confirmLabel: 'Kaydol',
+    })
     if (!confirmed) return
 
     setEnrolling(true)

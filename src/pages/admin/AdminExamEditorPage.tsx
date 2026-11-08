@@ -11,6 +11,7 @@ import { formatIstanbulDateTimeShort } from '../../lib/istanbul-time'
 import { difficultyLabels } from '../../lib/question-form'
 import { fetchQuestionsByIds } from '../../lib/question-search'
 import { useQuestionSearch } from '../../hooks/useQuestionSearch'
+import { useConfirm } from '../../hooks/useConfirm'
 import { QuestionListStatus, QuestionPager } from '../../components/admin/QuestionPager'
 import {
   validateExamForm,
@@ -74,6 +75,7 @@ type AdminExamEditorPageProps = {
 
 export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
   const navigate = useNavigate()
+  const confirm = useConfirm()
   const isEditing = Boolean(examId)
 
   const [values, setValues] = useState<ExamFormValues>({
@@ -351,13 +353,13 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
 
   const handlePublishResultsNow = async () => {
     if (!examId) return
-    if (
-      !window.confirm(
-        'Sonuçları hemen yayınlamak istediğinize emin misiniz? Bu işlem geri alınamaz.',
-      )
-    ) {
-      return
-    }
+    const confirmed = await confirm({
+      title: 'Sonuçlar hemen yayınlansın mı?',
+      message: 'Tüm katılımcılar sonuçlarını ve sıralamayı hemen görebilecek. Bu işlem geri alınamaz.',
+      confirmLabel: 'Sonuçları yayınla',
+      tone: 'danger',
+    })
+    if (!confirmed) return
 
     setGeneralError(null)
     setSuccess(null)

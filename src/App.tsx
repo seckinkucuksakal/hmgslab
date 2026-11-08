@@ -10,6 +10,7 @@ import { AppLayout } from './components/layout/AppLayout'
 import { ExamLayout } from './components/layout/ExamLayout'
 import { ServerClockProvider } from './hooks/useServerClock'
 import { CookieConsent } from './components/CookieConsent'
+import { ConfirmProvider } from './components/ConfirmDialog'
 import { routes } from './lib/routes'
 
 // Pages load on demand so the first paint ships only the shell, auth and routing.
@@ -47,6 +48,7 @@ function App() {
     <BrowserRouter>
       <ThemeProvider>
       <AuthProvider>
+        <ConfirmProvider>
         <ServerClockProvider>
           <Suspense
             fallback={
@@ -156,6 +158,7 @@ function App() {
           </Suspense>
         <CookieConsent />
         </ServerClockProvider>
+        </ConfirmProvider>
       </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

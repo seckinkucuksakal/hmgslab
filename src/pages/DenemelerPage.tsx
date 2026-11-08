@@ -15,12 +15,14 @@ import {
 import { formatIstanbulDateTimeShort } from '../lib/istanbul-time'
 import { enrollInExam, getMyCredits, notifyCreditsChanged } from '../lib/credits'
 import { routes } from '../lib/routes'
+import { useConfirm } from '../hooks/useConfirm'
 import type { StudentExamListItem } from '../types/live-exam'
 import { liveExamStateLabels } from '../types/live-exam'
 
 export function DenemelerPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const confirm = useConfirm()
   const [exams, setExams] = useState<StudentExamListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -156,14 +158,22 @@ export function DenemelerPage() {
 
   const handleEnroll = async (exam: StudentExamListItem) => {
     const balance = creditBalance ?? 0
-    const confirmed = window.confirm(
-      `"${exam.title}" denemesine kaydolmak 1 deneme hakkınızı kullanır.\n` +
-        `Kayıttan sonra kalan hakkınız: ${balance - 1}.` +
-        (exam.exam_mode === 'scheduled'
-          ? '\nSınava katılmazsanız hakkınız giriş süresi bitince iade edilir.'
-          : '') +
-        '\n\nKaydolmak istiyor musunuz?',
-    )
+    const confirmed = await confirm({
+      title: exam.exam_mode === 'scheduled' ? 'Canlı sınava kaydol' : 'Denemeye kaydol',
+      message: (
+        <>
+          <span className="font-medium text-gray-900 dark:text-slate-100">{exam.title}</span>
+          {exam.exam_mode === 'scheduled'
+            ? ' için kaydın 1 deneme hakkı kullanır. Sınava katılmazsan hakkın giriş süresi bitince iade edilir.'
+            : ' için kaydın 1 deneme hakkı kullanır. Bu denemeyi dilediğin kadar tekrar çözebilirsin.'}
+        </>
+      ),
+      details: [
+        { label: 'Kullanılacak hak', value: 1 },
+        { label: 'Kayıttan sonra kalan', value: balance - 1 },
+      ],
+      confirmLabel: 'Kaydol',
+    })
     if (!confirmed) return
 
     setBusyExamId(exam.id)
