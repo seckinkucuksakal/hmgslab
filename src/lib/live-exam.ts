@@ -52,8 +52,12 @@ export type UpcomingExamPreview = {
   lobbyOpenAt: string
   durationMinutes: number
   questionCount: number
-  liveState: 'upcoming' | 'lobby_open'
+  liveState: 'upcoming' | 'lobby_open' | 'in_progress_entry_open'
   canEnterLobby: boolean
+  canEnterExam: boolean
+  isEnrolled: boolean
+  canEnroll: boolean
+  inProgressAttemptId: string | null
   secondsUntilStart: number
   serverNow: string
 }
@@ -67,7 +71,7 @@ export async function fetchStudentExams(
   return (data ?? []) as StudentExamListItem[]
 }
 
-/** Next scheduled exam the user has not finalized (upcoming or lobby open). */
+/** Next scheduled exam the user has not finalized (upcoming, lobby open or still enterable). */
 export async function fetchNextUpcomingExam(
   _userId?: string,
 ): Promise<UpcomingExamPreview | null> {
@@ -76,7 +80,13 @@ export async function fetchNextUpcomingExam(
   for (const exam of exams) {
     if (exam.exam_mode !== 'scheduled' || !exam.scheduled_start_at) continue
     if (exam.finalized_attempt_id || exam.question_count === 0) continue
-    if (exam.live_state !== 'upcoming' && exam.live_state !== 'lobby_open') continue
+    if (
+      exam.live_state !== 'upcoming' &&
+      exam.live_state !== 'lobby_open' &&
+      exam.live_state !== 'in_progress_entry_open'
+    ) {
+      continue
+    }
 
     return {
       examId: exam.id,
@@ -87,6 +97,10 @@ export async function fetchNextUpcomingExam(
       questionCount: exam.question_count,
       liveState: exam.live_state,
       canEnterLobby: exam.can_enter_lobby,
+      canEnterExam: exam.can_enter_exam,
+      isEnrolled: exam.is_enrolled,
+      canEnroll: exam.can_enroll,
+      inProgressAttemptId: exam.in_progress_attempt_id,
       secondsUntilStart: exam.seconds_until_start ?? 0,
       serverNow: exam.server_now ?? new Date().toISOString(),
     }

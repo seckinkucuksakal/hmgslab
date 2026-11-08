@@ -6,9 +6,18 @@ import {
   type UpcomingExamPreview,
 } from '../../lib/live-exam'
 import {
+  CREDITS_CHANGED_EVENT,
+  enrollInExam,
+  getMyCredits,
+  notifyCreditsChanged,
+} from '../../lib/credits'
+import { getExamErrorMessage } from '../../lib/exam-session'
+import {
   formatIstanbulDateTimeShort,
+  formatIstanbulTime,
   getCountdownParts,
 } from '../../lib/istanbul-time'
+import { routes } from '../../lib/routes'
 
 const POLL_MS = 30_000
 
@@ -39,12 +48,19 @@ type UpcomingExamCountdownProps = {
 
 export function UpcomingExamCountdown({ userId }: UpcomingExamCountdownProps) {
   const [exam, setExam] = useState<UpcomingExamPreview | null>(null)
+  const [balance, setBalance] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [enrolling, setEnrolling] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
-      const next = await fetchNextUpcomingExam(userId)
+      const [next, credits] = await Promise.all([
+        fetchNextUpcomingExam(userId),
+        getMyCredits(),
+      ])
       setExam(next)
+      setBalance(credits.balance)
     } catch {
       setExam(null)
     } finally {
@@ -57,8 +73,49 @@ export function UpcomingExamCountdown({ userId }: UpcomingExamCountdownProps) {
     const interval = window.setInterval(() => {
       void load()
     }, POLL_MS)
-    return () => window.clearInterval(interval)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void load()
+    }
+    const onChanged = () => void load()
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener(CREDITS_CHANGED_EVENT, onChanged)
+    return () => {
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener(CREDITS_CHANGED_EVENT, onChanged)
+    }
   }, [load])
+
+  // Reload exactly when the lobby opens, not up to POLL_MS later.
+  useEffect(() => {
+    if (!exam || exam.liveState !== 'upcoming') return
+    const msUntilLobby = new Date(exam.lobbyOpenAt).getTime() - new Date(exam.serverNow).getTime()
+    if (msUntilLobby <= 0 || msUntilLobby > POLL_MS) return
+    const timer = window.setTimeout(() => void load(), msUntilLobby + 500)
+    return () => window.clearTimeout(timer)
+  }, [exam, load])
+
+  const handleEnroll = async () => {
+    if (!exam) return
+    const confirmed = window.confirm(
+      `"${exam.title}" sınavına kaydolmak 1 deneme hakkınızı kullanır.\n` +
+        'Sınava katılmazsanız hakkınız giriş süresi bitince iade edilir.\n\n' +
+        'Kaydolmak istiyor musunuz?',
+    )
+    if (!confirmed) return
+
+    setEnrolling(true)
+    setError(null)
+    try {
+      await enrollInExam(exam.examId)
+      notifyCreditsChanged()
+      await load()
+    } catch (err) {
+      setError(getExamErrorMessage(err))
+    } finally {
+      setEnrolling(false)
+    }
+  }
 
   const countdownSeconds = useServerCountdown(
     exam?.secondsUntilStart,
@@ -81,6 +138,67 @@ export function UpcomingExamCountdown({ userId }: UpcomingExamCountdownProps) {
 
   if (!exam) return null
 
+  const started = exam.liveState === 'in_progress_entry_open'
+  const lobbyPath = routes.denemeLobi(exam.examId)
+  const buttonClass =
+    'mt-6 inline-flex rounded-md bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500'
+
+  const renderAction = () => {
+    if (exam.inProgressAttemptId) {
+      return (
+        <Link to={routes.sinav(exam.inProgressAttemptId)} className={buttonClass}>
+          Sınava dön
+        </Link>
+      )
+    }
+
+    if (exam.isEnrolled) {
+      if (started && exam.canEnterExam) {
+        return (
+          <Link to={lobbyPath} className={buttonClass}>
+            Sınava gir
+          </Link>
+        )
+      }
+      if (exam.canEnterLobby) {
+        return (
+          <Link to={lobbyPath} className={buttonClass}>
+            Giriş alanına git
+          </Link>
+        )
+      }
+      return (
+        <p className="mt-6 text-sm font-medium text-green-700 dark:text-green-400">
+          Kaydın tamam · giriş alanı {formatIstanbulTime(exam.lobbyOpenAt)}'de açılır
+        </p>
+      )
+    }
+
+    if (!exam.canEnroll) return null
+
+    if (balance !== null && balance < 1) {
+      return (
+        <Link
+          to={routes.paketler}
+          className="mt-6 inline-flex rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-500"
+        >
+          Hak satın al
+        </Link>
+      )
+    }
+
+    return (
+      <button
+        type="button"
+        disabled={enrolling || balance === null}
+        onClick={() => void handleEnroll()}
+        className={buttonClass}
+      >
+        {enrolling ? 'Kaydediliyor…' : 'Kaydol (1 hak)'}
+      </button>
+    )
+  }
+
   const parts = getCountdownParts(countdownSeconds)
   const units: { label: string; value: number }[] =
     parts.days > 0
@@ -99,7 +217,11 @@ export function UpcomingExamCountdown({ userId }: UpcomingExamCountdownProps) {
   return (
     <section className="flex min-h-[20rem] flex-col items-center justify-center px-4 py-10 text-center">
       <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500 dark:text-slate-400">
-        {exam.liveState === 'lobby_open' ? 'Giriş alanı açık' : 'Yaklaşan deneme'}
+        {started
+          ? 'Sınav başladı'
+          : exam.liveState === 'lobby_open'
+            ? 'Giriş alanı açık'
+            : 'Yaklaşan deneme'}
       </p>
       <h2 className="mt-3 max-w-lg text-xl font-semibold text-gray-900 sm:text-2xl dark:text-slate-100">
         {exam.title}
@@ -109,23 +231,30 @@ export function UpcomingExamCountdown({ userId }: UpcomingExamCountdownProps) {
         soru · {exam.durationMinutes} dk
       </p>
 
-      <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-        {units.map((unit) => (
-          <CountdownUnit key={unit.label} label={unit.label} value={unit.value} />
-        ))}
-      </div>
+      {started ? (
+        <p className="mt-8 text-sm text-gray-600 dark:text-slate-400">
+          Geç giriş kısa bir süre daha açık.
+        </p>
+      ) : (
+        <>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+            {units.map((unit) => (
+              <CountdownUnit key={unit.label} label={unit.label} value={unit.value} />
+            ))}
+          </div>
 
-      <p className="mt-8 text-sm text-gray-600 dark:text-slate-400">
-        Sınav başlamasına kalan süre
-      </p>
+          <p className="mt-8 text-sm text-gray-600 dark:text-slate-400">
+            Sınav başlamasına kalan süre
+          </p>
+        </>
+      )}
 
-      {exam.canEnterLobby && (
-        <Link
-          to={`/denemeler/${exam.examId}/lobi`}
-          className="mt-6 inline-flex rounded-md bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800 dark:bg-blue-600 dark:hover:bg-blue-500"
-        >
-          Giriş alanına git
-        </Link>
+      {renderAction()}
+
+      {error && (
+        <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+          {error}
+        </p>
       )}
     </section>
   )
