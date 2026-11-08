@@ -1,4 +1,5 @@
 import { ACCESS_REQUIRED_MESSAGE, isAccessError } from './access'
+import { getEnrollmentErrorMessage } from './credits'
 import { supabase } from './supabase'
 import type {
   AttemptSubmitResult,
@@ -130,6 +131,8 @@ export function getPostSubmitPath(
 }
 
 export function getExamErrorMessage(error: unknown): string {
+  const enrollmentMessage = getEnrollmentErrorMessage(error)
+  if (enrollmentMessage) return enrollmentMessage
   if (isAccessError(error)) return ACCESS_REQUIRED_MESSAGE
   if (error && typeof error === 'object' && 'message' in error) {
     const message = String((error as { message: string }).message)

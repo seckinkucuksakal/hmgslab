@@ -47,6 +47,9 @@ export type StudentExamListItem = {
   results_publish_at: string | null
   in_progress_attempt_id: string | null
   finalized_attempt_id: string | null
+  /** Enrolling spends a credit; only enrolled users can start the exam. */
+  is_enrolled: boolean
+  can_enroll: boolean
   live_state: LiveExamState
   can_enter_lobby: boolean
   can_enter_exam: boolean

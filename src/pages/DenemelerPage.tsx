@@ -13,6 +13,7 @@ import {
   syncExamAttempt,
 } from '../lib/exam-session'
 import { formatIstanbulDateTimeShort } from '../lib/istanbul-time'
+import { enrollInExam, getMyCredits } from '../lib/credits'
 import type { StudentExamListItem } from '../types/live-exam'
 import { liveExamStateLabels } from '../types/live-exam'
 
@@ -24,6 +25,7 @@ export function DenemelerPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busyExamId, setBusyExamId] = useState<string | null>(null)
+  const [creditBalance, setCreditBalance] = useState<number | null>(null)
   const requestRef = useRef(0)
   const inFlightRef = useRef(false)
 
@@ -35,9 +37,10 @@ export function DenemelerPage() {
     const requestId = ++requestRef.current
 
     try {
-      const list = await fetchStudentExams()
+      const [list, credits] = await Promise.all([fetchStudentExams(), getMyCredits()])
       if (requestId !== requestRef.current) return
       setExams(list)
+      setCreditBalance(credits.balance)
       setLoadError(null)
     } catch (err) {
       if (requestId !== requestRef.current) return
@@ -52,10 +55,11 @@ export function DenemelerPage() {
     if (!user) return
 
     let cancelled = false
-    fetchStudentExams()
-      .then((list) => {
+    Promise.all([fetchStudentExams(), getMyCredits()])
+      .then(([list, credits]) => {
         if (cancelled || requestRef.current > 0) return
         setExams(list)
+        setCreditBalance(credits.balance)
         setLoadError(null)
       })
       .catch((err) => {
@@ -144,6 +148,43 @@ export function DenemelerPage() {
     }
   }
 
+  // Nobody is enrolled automatically: enrolling is an explicit choice that
+  // spends one credit on the server.
+  const needsEnrollment = (exam: StudentExamListItem): boolean =>
+    !exam.is_enrolled && !exam.in_progress_attempt_id && !exam.finalized_attempt_id
+
+  const handleEnroll = async (exam: StudentExamListItem) => {
+    const balance = creditBalance ?? 0
+    const confirmed = window.confirm(
+      `"${exam.title}" denemesine kaydolmak 1 deneme hakkınızı kullanır.\n` +
+        `Kayıttan sonra kalan hakkınız: ${balance - 1}.` +
+        (exam.exam_mode === 'scheduled'
+          ? '\nSınava katılmazsanız hakkınız giriş süresi bitince iade edilir.'
+          : '') +
+        '\n\nKaydolmak istiyor musunuz?',
+    )
+    if (!confirmed) return
+
+    setBusyExamId(exam.id)
+    setError(null)
+    try {
+      const result = await enrollInExam(exam.id)
+      setCreditBalance(result.credit_balance)
+      await refresh()
+    } catch (err) {
+      setError(getExamErrorMessage(err))
+      void refresh()
+    } finally {
+      setBusyExamId(null)
+    }
+  }
+
+  const enrollLabel = (exam: StudentExamListItem): string => {
+    if (!exam.can_enroll) return 'Kayıt kapandı'
+    if ((creditBalance ?? 0) < 1) return 'Hakkınız yok'
+    return 'Kaydol (1 hak)'
+  }
+
   const actionLabel = (exam: StudentExamListItem): string => {
     if (exam.exam_mode === 'practice') {
       return exam.in_progress_attempt_id ? 'Devam et' : 'Denemeyi başlat'
@@ -190,7 +231,19 @@ export function DenemelerPage() {
       <h1 className="text-2xl font-semibold text-gray-900">Denemeler</h1>
       <p className="mt-2 max-w-lg text-sm text-gray-600">
         Aktif HMGSlab deneme ve canlı sınavları buradan takip edebilirsiniz.
+        Bir denemeye katılmak için önce kaydolmanız gerekir; her kayıt 1 deneme
+        hakkı kullanır.
       </p>
+
+      {creditBalance !== null && (
+        <p className="mt-4 text-sm text-gray-700">
+          Kalan deneme hakkınız:{' '}
+          <span className="font-semibold text-gray-900">{creditBalance}</span>
+          {creditBalance < 1 && (
+            <span className="text-gray-500"> · Paket satışı yakında açılacak.</span>
+          )}
+        </p>
+      )}
 
       {error && (
         <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -240,6 +293,11 @@ export function DenemelerPage() {
                       <span className="text-xs text-gray-500">
                         {liveExamStateLabels[exam.live_state]}
                       </span>
+                      {exam.is_enrolled && (
+                        <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700">
+                          Kayıtlısınız
+                        </span>
+                      )}
                     </div>
                     <p className="mt-1 text-xs text-gray-500">
                       {exam.question_count} soru · {exam.duration_minutes} dk
@@ -248,14 +306,30 @@ export function DenemelerPage() {
                         ` · ${formatIstanbulDateTimeShort(exam.scheduled_start_at)}`}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    disabled={isBusy || isActionDisabled(exam)}
-                    onClick={() => handleExamAction(exam)}
-                    className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-                  >
-                    {isBusy ? 'Yükleniyor…' : actionLabel(exam)}
-                  </button>
+                  {needsEnrollment(exam) ? (
+                    <button
+                      type="button"
+                      disabled={
+                        isBusy ||
+                        creditBalance === null ||
+                        !exam.can_enroll ||
+                        creditBalance < 1
+                      }
+                      onClick={() => handleEnroll(exam)}
+                      className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                    >
+                      {isBusy ? 'Yükleniyor…' : enrollLabel(exam)}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isBusy || isActionDisabled(exam)}
+                      onClick={() => handleExamAction(exam)}
+                      className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                    >
+                      {isBusy ? 'Yükleniyor…' : actionLabel(exam)}
+                    </button>
+                  )}
                 </div>
               </li>
             )

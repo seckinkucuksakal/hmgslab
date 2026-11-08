@@ -12,7 +12,7 @@ import {
   updateLeaderboardVisibility,
 } from '../lib/profile-settings'
 import { routes } from '../lib/routes'
-import { getMyAccess, type MyAccess } from '../lib/access'
+import { creditReasonLabels, getMyCredits, type MyCredits } from '../lib/credits'
 import { formatIstanbulDateTimeShort } from '../lib/istanbul-time'
 
 function SettingsSection({
@@ -51,18 +51,18 @@ export function ProfilPage() {
   const [nameSuccess, setNameSuccess] = useState<string | null>(null)
   const [nameLoading, setNameLoading] = useState(false)
 
-  const [access, setAccess] = useState<MyAccess | null>(null)
-  const [accessError, setAccessError] = useState(false)
+  const [credits, setCredits] = useState<MyCredits | null>(null)
+  const [creditsError, setCreditsError] = useState(false)
 
-  const loadAccess = () => {
-    setAccessError(false)
-    getMyAccess().then(setAccess).catch(() => setAccessError(true))
+  const loadCredits = () => {
+    setCreditsError(false)
+    getMyCredits().then(setCredits).catch(() => setCreditsError(true))
   }
 
   useEffect(() => {
-    getMyAccess()
-      .then(setAccess)
-      .catch(() => setAccessError(true))
+    getMyCredits()
+      .then(setCredits)
+      .catch(() => setCreditsError(true))
   }, [])
 
   const [visibilityError, setVisibilityError] = useState<string | null>(null)
@@ -249,64 +249,59 @@ export function ProfilPage() {
       </SettingsSection>
 
       <SettingsSection
-        title="Paketim"
-        description="Erişim durumunuz sunucuda belirlenir; bu ekran yalnızca onu gösterir."
+        title="Deneme haklarım"
+        description="Her denemeye kayıt 1 hak kullanır. Kayıt olurken 1 hak hediye edilir; haklar süresizdir."
       >
-        {accessError ? (
+        {creditsError ? (
           <p className="text-sm text-red-700 dark:text-red-300">
-            Paket bilgisi yüklenemedi.{' '}
-            <button type="button" onClick={loadAccess} className="font-medium underline">
+            Deneme hakkı bilgisi yüklenemedi.{' '}
+            <button type="button" onClick={loadCredits} className="font-medium underline">
               Yeniden dene
             </button>
           </p>
-        ) : !access ? (
+        ) : !credits ? (
           <p className="text-sm text-gray-500">Yükleniyor…</p>
         ) : (
-          <dl className="space-y-2 text-sm text-gray-700 dark:text-slate-300">
+          <div className="space-y-4 text-sm text-gray-700 dark:text-slate-300">
             <div className="flex justify-between gap-4">
-              <dt>Paket</dt>
-              <dd className="font-medium">
-                {access.status === 'free' ? 'Ücretsiz erişim' : (access.plan_name ?? '—')}
-              </dd>
+              <span>Kalan deneme hakkı</span>
+              <span className="font-semibold text-gray-900 dark:text-slate-100">
+                {credits.balance}
+              </span>
             </div>
-            <div className="flex justify-between gap-4">
-              <dt>Durum</dt>
-              <dd className="font-medium">
-                {{
-                  free: 'Ücretsiz',
-                  active: 'Aktif',
-                  canceled: 'İptal edildi (süre sonuna kadar geçerli)',
-                  expired: 'Süresi doldu',
-                }[access.status]}
-              </dd>
-            </div>
-            {access.ends_at && (
-              <div className="flex justify-between gap-4">
-                <dt>{access.status === 'expired' ? 'Bitiş' : 'Erişim bitiş tarihi'}</dt>
-                <dd className="font-medium">
-                  {formatIstanbulDateTimeShort(access.ends_at)}
-                </dd>
-              </div>
+            <p className="text-xs text-gray-500 dark:text-slate-400">
+              1 ve 10 denemelik paketlerin satışı yakında açılacak.
+            </p>
+            {credits.history.length > 0 && (
+              <ul className="divide-y divide-gray-100 border-t border-gray-100 dark:divide-slate-800 dark:border-slate-800">
+                {credits.history.map((item) => (
+                  <li key={item.id} className="flex justify-between gap-4 py-2 text-xs">
+                    <span>
+                      {creditReasonLabels[item.reason]}
+                      {(item.exam_title ?? item.package_name) && (
+                        <span className="text-gray-500 dark:text-slate-400">
+                          {' '}
+                          · {item.exam_title ?? item.package_name}
+                        </span>
+                      )}
+                      <span className="block text-gray-400 dark:text-slate-500">
+                        {formatIstanbulDateTimeShort(item.created_at)}
+                      </span>
+                    </span>
+                    <span
+                      className={
+                        item.delta > 0
+                          ? 'font-medium text-green-700 dark:text-green-400'
+                          : 'font-medium text-gray-900 dark:text-slate-100'
+                      }
+                    >
+                      {item.delta > 0 ? `+${item.delta}` : item.delta}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
-            {access.enforced && access.status === 'free' && (
-              <p className="text-xs text-gray-500 dark:text-slate-400">
-                Ücretsiz erişimde {access.free_exam_limit} deneme çözebilirsiniz
-                ({access.free_exams_used} kullanıldı).
-              </p>
-            )}
-            {access.history_locked && (
-              <p className="text-xs text-red-700 dark:text-red-300">
-                Paketiniz sona erdiği için geçmiş sonuçlar ve analizler kilitli;
-                yenilediğinizde yeniden açılır.
-              </p>
-            )}
-            {!access.enforced && (
-              <p className="text-xs text-gray-500 dark:text-slate-400">
-                Şu an tüm aktif denemeler ücretsizdir. Ücretli paketler henüz
-                satışa açılmadı.
-              </p>
-            )}
-          </dl>
+          </div>
         )}
       </SettingsSection>
 

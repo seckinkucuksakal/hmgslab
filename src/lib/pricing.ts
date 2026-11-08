@@ -15,18 +15,18 @@ export type PricingPlan = {
 }
 
 /**
- * Billing is not connected yet. Today every registered user can use the active
- * exams for free; paid plans are announced as planned, without prices or any
- * purchase action.
+ * Credit model: one free exam on sign-up, then exam credits bought in packages
+ * of 1 or 10 (no expiry). Payments are not connected yet, so the paid packages
+ * are announced without prices or any purchase action.
  */
 export const pricingPlans: PricingPlan[] = [
   {
     id: 'free',
-    name: 'Ücretsiz erişim',
-    priceLabel: 'Şu an ücretsiz',
-    description: 'Kayıt olun, aktif denemeleri hemen çözün.',
+    name: 'İlk deneme ücretsiz',
+    priceLabel: 'Ücretsiz',
+    description: 'Kayıt olun, ilk denemenize ücretsiz katılın.',
     features: [
-      'Aktif deneme ve canlı sınavlara katılım',
+      '1 deneme hakkı hediye',
       'Sonuç ve cevap incelemesi',
       'Ders ve konu bazlı performans analizi',
       'Denemenin katılımcıları arasında sıralama',
@@ -37,21 +37,21 @@ export const pricingPlans: PricingPlan[] = [
     ctaHref: routes.kayit,
   },
   {
-    id: 'monthly',
-    name: 'Aylık paket',
+    id: 'single',
+    name: '1 deneme',
     priceLabel: 'Fiyat açıklanacak',
-    description: 'Planlanan paket. Kapsamı ve fiyatı henüz belirlenmedi.',
-    features: ['Ödeme sistemi devreye girdiğinde duyurulacak'],
+    description: 'Tek bir deneme veya canlı sınav için 1 hak.',
+    features: ['Süresiz geçerli', 'Ödeme sistemi devreye girdiğinde satışa açılacak'],
     available: false,
     ctaLabel: 'Yakında',
     ctaHref: routes.kayit,
   },
   {
-    id: 'season',
-    name: 'Sezon paketi',
+    id: 'pack10',
+    name: '10 deneme',
     priceLabel: 'Fiyat açıklanacak',
-    description: 'Planlanan paket. Kapsamı ve fiyatı henüz belirlenmedi.',
-    features: ['Ödeme sistemi devreye girdiğinde duyurulacak'],
+    description: '10 deneme veya canlı sınav için 10 hak.',
+    features: ['Süresiz geçerli', 'Ödeme sistemi devreye girdiğinde satışa açılacak'],
     available: false,
     ctaLabel: 'Yakında',
     ctaHref: routes.kayit,

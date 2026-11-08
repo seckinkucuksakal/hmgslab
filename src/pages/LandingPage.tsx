@@ -95,9 +95,9 @@ export function LandingPage() {
               Fiyatlar
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-gray-600 dark:text-slate-400">
-              Ödeme sistemi henüz etkin değil. Şu anda kayıt olan herkes aktif
-              denemelere ücretsiz erişebilir. Ücretli paketler ve fiyatlar
-              belirlendiğinde duyurulacak.
+              Kayıt olan herkese 1 deneme hakkı hediye edilir. Sonraki
+              denemeler için 1 ve 10 denemelik paketler sunulacak; ödeme sistemi
+              ve fiyatlar belirlendiğinde duyurulacak.
             </p>
           </div>
 
