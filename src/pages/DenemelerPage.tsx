@@ -183,9 +183,12 @@ export function DenemelerPage() {
 
   const enrollLabel = (exam: StudentExamListItem): string => {
     if (!exam.can_enroll) return 'Kayıt kapandı'
-    if ((creditBalance ?? 0) < 1) return 'Hakkınız yok'
     return 'Kaydol (1 hak)'
   }
+
+  // Open exam but no credits left: the button leads straight to the packages.
+  const needsCredits = (exam: StudentExamListItem): boolean =>
+    exam.can_enroll && creditBalance !== null && creditBalance < 1
 
   const actionLabel = (exam: StudentExamListItem): string => {
     if (exam.exam_mode === 'practice') {
@@ -309,15 +312,17 @@ export function DenemelerPage() {
                         ` · ${formatIstanbulDateTimeShort(exam.scheduled_start_at)}`}
                     </p>
                   </div>
-                  {needsEnrollment(exam) ? (
+                  {needsEnrollment(exam) && needsCredits(exam) ? (
+                    <Link
+                      to={routes.paketler}
+                      className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
+                    >
+                      Hak satın al
+                    </Link>
+                  ) : needsEnrollment(exam) ? (
                     <button
                       type="button"
-                      disabled={
-                        isBusy ||
-                        creditBalance === null ||
-                        !exam.can_enroll ||
-                        creditBalance < 1
-                      }
+                      disabled={isBusy || creditBalance === null || !exam.can_enroll}
                       onClick={() => handleEnroll(exam)}
                       className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
                     >
