@@ -40,6 +40,10 @@ export function CreditBadge() {
 
   if (balance === null) return null
 
+  return <CreditBadgeView balance={balance} />
+}
+
+export function CreditBadgeView({ balance }: { balance: number }) {
   const empty = balance < 1
 
   return (
@@ -50,24 +54,34 @@ export function CreditBadge() {
       className={[
         'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium shadow-sm transition',
         empty
-          ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100'
+          ? 'border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100'
           : 'border-gray-200/70 bg-white text-gray-800 hover:border-gray-300 hover:bg-gray-50',
       ].join(' ')}
     >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        className="h-4 w-4"
-        aria-hidden
-      >
-        <path
-          strokeLinejoin="round"
-          d="M4 7a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v3a2 2 0 0 0 0 4v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a2 2 0 0 0 0-4V7Z"
-        />
-        <path strokeLinecap="round" strokeDasharray="1.5 2.5" d="M14 7v10" />
-      </svg>
+      {empty ? (
+        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden>
+          <path
+            fillRule="evenodd"
+            d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm0-12a1 1 0 0 1 1 1v3.5a1 1 0 1 1-2 0V7a1 1 0 0 1 1-1Zm0 8.5a1.1 1.1 0 1 0 0-2.2 1.1 1.1 0 0 0 0 2.2Z"
+            clipRule="evenodd"
+          />
+        </svg>
+      ) : (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          className="h-4 w-4"
+          aria-hidden
+        >
+          <path
+            strokeLinejoin="round"
+            d="M4 7a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v3a2 2 0 0 0 0 4v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a2 2 0 0 0 0-4V7Z"
+          />
+          <path strokeLinecap="round" strokeDasharray="1.5 2.5" d="M14 7v10" />
+        </svg>
+      )}
       <span className="tabular-nums">{balance}</span>
       <span className="hidden sm:inline">deneme hakkı</span>
     </Link>
