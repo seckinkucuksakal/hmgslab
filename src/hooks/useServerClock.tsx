@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { getServerTime } from '../lib/live-exam'
+import { useAuth } from './useAuth'
 import { formatIstanbulDate, formatIstanbulTime } from '../lib/istanbul-time'
 
 type ServerClockContextValue = {
@@ -24,6 +25,8 @@ const RESYNC_MS = 60_000
 export function ServerClockProvider({ children }: { children: ReactNode }) {
   const anchorRef = useRef<{ serverMs: number; monoAt: number } | null>(null)
   const [displayMs, setDisplayMs] = useState<number | null>(null)
+  const { user } = useAuth()
+  const signedIn = user !== null
 
   const applyServerTime = useCallback((iso: string) => {
     const serverMs = new Date(iso).getTime()
@@ -41,6 +44,10 @@ export function ServerClockProvider({ children }: { children: ReactNode }) {
   }, [applyServerTime])
 
   useEffect(() => {
+    // get_server_time is only granted to signed-in users; polling it while
+    // signed out just produces 401s.
+    if (!signedIn) return
+
     void resync()
 
     const resyncInterval = window.setInterval(() => {
@@ -58,7 +65,7 @@ export function ServerClockProvider({ children }: { children: ReactNode }) {
       window.clearInterval(resyncInterval)
       window.clearInterval(tickInterval)
     }
-  }, [resync])
+  }, [resync, signedIn])
 
   const serverNow = displayMs !== null ? new Date(displayMs) : null
 
