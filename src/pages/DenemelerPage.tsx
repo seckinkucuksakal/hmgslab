@@ -13,7 +13,7 @@ import {
   syncExamAttempt,
 } from '../lib/exam-session'
 import { formatIstanbulDateTimeShort } from '../lib/istanbul-time'
-import { enrollInExam, getMyCredits } from '../lib/credits'
+import { enrollInExam, getMyCredits, notifyCreditsChanged } from '../lib/credits'
 import { routes } from '../lib/routes'
 import type { StudentExamListItem } from '../types/live-exam'
 import { liveExamStateLabels } from '../types/live-exam'
@@ -171,6 +171,7 @@ export function DenemelerPage() {
     try {
       const result = await enrollInExam(exam.id)
       setCreditBalance(result.credit_balance)
+      notifyCreditsChanged()
       await refresh()
     } catch (err) {
       setError(getExamErrorMessage(err))

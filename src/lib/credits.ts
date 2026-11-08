@@ -27,6 +27,13 @@ export type EnrollResult = {
   credit_balance: number
 }
 
+/** Fired after an action that changes the balance, so the header can refresh. */
+export const CREDITS_CHANGED_EVENT = 'hmgs:credits-changed'
+
+export function notifyCreditsChanged(): void {
+  window.dispatchEvent(new Event(CREDITS_CHANGED_EVENT))
+}
+
 export const creditReasonLabels: Record<CreditReason, string> = {
   signup_bonus: 'Kayıt hediyesi',
   purchase: 'Satın alma',

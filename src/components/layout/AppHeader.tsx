@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { useProfile } from '../../hooks/useProfile'
 import { SiteLogo } from '../SiteLogo'
 import { NavbarClock, NavbarUserButton } from './NavbarClock'
+import { CreditBadge } from './CreditBadge'
 import { SITE_NAME } from '../../lib/brand'
 import { routes } from '../../lib/routes'
 
@@ -93,6 +94,7 @@ export function AppHeader() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
+          <CreditBadge />
           <NavbarClock />
 
           <button
