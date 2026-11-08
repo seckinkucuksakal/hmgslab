@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { secondaryButton } from '../../lib/ui'
 import type { AttemptRankingResult } from '../../types/exam-ranking'
 import {
   formatParticipantCount,
@@ -17,9 +18,13 @@ export function RankingSummary({ ranking, leaderboardHref }: RankingSummaryProps
 
   return (
     <section className="mt-8 border-t border-gray-200 pt-8">
-      <h2 className="text-sm font-medium text-gray-900">
-        Bu denemenin katılımcıları arasındaki sıralama
+      <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">
+        Türkiye geneli sıralama
       </h2>
+      <p className="mt-1 text-sm text-gray-600 dark:text-slate-400">
+        Bu denemeye Türkiye genelinde katılan{' '}
+        {formatParticipantCount(ranking.total_participants)} kişi arasındaki yerin.
+      </p>
 
       <div className="mt-4 space-y-2">
         <p className="text-2xl font-semibold tabular-nums text-gray-900">
@@ -45,11 +50,8 @@ export function RankingSummary({ ranking, leaderboardHref }: RankingSummaryProps
         )}
       </div>
 
-      <Link
-        to={leaderboardHref}
-        className="mt-4 inline-block text-sm text-gray-900 hover:underline"
-      >
-        Sıralama tablosunu gör →
+      <Link to={leaderboardHref} className={`mt-5 ${secondaryButton}`}>
+        Türkiye geneli sıralamayı gör →
       </Link>
     </section>
   )

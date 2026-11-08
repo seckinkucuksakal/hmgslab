@@ -18,6 +18,9 @@ import {
   getCountdownParts,
 } from '../../lib/istanbul-time'
 import { routes } from '../../lib/routes'
+import { primaryButton } from '../../lib/ui'
+import { formatTry } from '../../lib/credits'
+import { ExamCheckoutDialog } from '../ExamCheckoutDialog'
 import { useConfirm } from '../../hooks/useConfirm'
 
 const POLL_MS = 30_000
@@ -53,6 +56,8 @@ export function UpcomingExamCountdown({ userId }: UpcomingExamCountdownProps) {
   const [loading, setLoading] = useState(true)
   const [enrolling, setEnrolling] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const closeCheckout = useCallback(() => setCheckoutOpen(false), [])
   const confirm = useConfirm()
 
   const load = useCallback(async () => {
@@ -100,21 +105,14 @@ export function UpcomingExamCountdown({ userId }: UpcomingExamCountdownProps) {
   const handleEnroll = async () => {
     if (!exam) return
     const confirmed = await confirm({
-      title: 'Canlı sınava kaydol',
+      title: 'Ücretsiz katıl',
       message: (
         <>
           <span className="font-medium text-gray-900 dark:text-slate-100">{exam.title}</span>
-          {' için kaydın 1 deneme hakkı kullanır. Sınava katılmazsan hakkın giriş süresi bitince iade edilir.'}
+          {' için ücretsiz deneme hakkını kullanacaksın. Sınava katılmazsan hakkın giriş süresi bitince geri verilir.'}
         </>
       ),
-      details:
-        balance !== null
-          ? [
-              { label: 'Kullanılacak hak', value: 1 },
-              { label: 'Kayıttan sonra kalan', value: balance - 1 },
-            ]
-          : undefined,
-      confirmLabel: 'Kaydol',
+      confirmLabel: 'Katıl',
     })
     if (!confirmed) return
 
@@ -154,8 +152,7 @@ export function UpcomingExamCountdown({ userId }: UpcomingExamCountdownProps) {
 
   const started = exam.liveState === 'in_progress_entry_open'
   const lobbyPath = routes.denemeLobi(exam.examId)
-  const buttonClass =
-    'mt-6 inline-flex rounded-md bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500'
+  const buttonClass = `mt-6 ${primaryButton} px-5 py-2.5`
 
   const renderAction = () => {
     if (exam.inProgressAttemptId) {
@@ -192,12 +189,9 @@ export function UpcomingExamCountdown({ userId }: UpcomingExamCountdownProps) {
 
     if (balance !== null && balance < 1) {
       return (
-        <Link
-          to={routes.paketler}
-          className="mt-6 inline-flex rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-500"
-        >
-          Hak satın al
-        </Link>
+        <button type="button" onClick={() => setCheckoutOpen(true)} className={buttonClass}>
+          Satın al · {formatTry(exam.priceKurus)}
+        </button>
       )
     }
 
@@ -208,7 +202,7 @@ export function UpcomingExamCountdown({ userId }: UpcomingExamCountdownProps) {
         onClick={() => void handleEnroll()}
         className={buttonClass}
       >
-        {enrolling ? 'Kaydediliyor…' : 'Kaydol (1 hak)'}
+        {enrolling ? 'Kaydediliyor…' : 'Ücretsiz katıl'}
       </button>
     )
   }
@@ -269,6 +263,17 @@ export function UpcomingExamCountdown({ userId }: UpcomingExamCountdownProps) {
         <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
           {error}
         </p>
+      )}
+
+      {checkoutOpen && (
+        <ExamCheckoutDialog
+          title={exam.title}
+          scheduledStartAt={exam.scheduledStartAt}
+          questionCount={exam.questionCount}
+          durationMinutes={exam.durationMinutes}
+          priceKurus={exam.priceKurus}
+          onClose={closeCheckout}
+        />
       )}
     </section>
   )

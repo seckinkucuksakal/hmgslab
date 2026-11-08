@@ -39,7 +39,7 @@ export function LandingPage() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link
               to={routes.kayit}
-              className="rounded-md bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 dark:bg-blue-600 dark:hover:bg-blue-500"
+              className="rounded-md bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400"
             >
               Ücretsiz başla
             </Link>
@@ -95,13 +95,12 @@ export function LandingPage() {
               Fiyatlar
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-gray-600 dark:text-slate-400">
-              Kayıt olan herkese 1 deneme hakkı hediye edilir. Sonraki
-              denemeler için 1, 5 veya 10 denemelik paket alabilirsiniz; haklar
-              süresizdir.
+              İlk deneme ücretsiz. Sonraki her deneme ayrı ayrı satın alınır;
+              paket veya abonelik zorunluluğu yok.
             </p>
           </div>
 
-          <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <ul className="mx-auto mt-12 grid max-w-3xl gap-6 sm:grid-cols-2">
             {pricingPlans.map((plan) => (
               <li
                 key={plan.id}
@@ -113,7 +112,7 @@ export function LandingPage() {
                 ].join(' ')}
               >
                 {plan.highlighted && (
-                  <span className="mb-4 inline-flex w-fit rounded-full bg-gray-900 px-2.5 py-0.5 text-xs font-medium text-white dark:bg-blue-600">
+                  <span className="mb-4 inline-flex w-fit rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-medium text-white dark:bg-blue-500">
                     Şu an açık
                   </span>
                 )}
@@ -137,7 +136,7 @@ export function LandingPage() {
                 {plan.available ? (
                   <Link
                     to={plan.ctaHref}
-                    className="mt-8 block rounded-md bg-gray-900 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500"
+                    className="mt-8 block rounded-md bg-blue-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:bg-blue-500 dark:hover:bg-blue-400"
                   >
                     {plan.ctaLabel}
                   </Link>
@@ -168,7 +167,7 @@ export function LandingPage() {
         </p>
         <Link
           to={routes.kayit}
-          className="mt-8 inline-flex rounded-md bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 dark:bg-blue-600 dark:hover:bg-blue-500"
+          className="mt-8 inline-flex rounded-md bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400"
         >
           Kayıt ol
         </Link>

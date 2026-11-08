@@ -1,3 +1,4 @@
+import { backLink } from '../../lib/ui'
 import { Link } from 'react-router-dom'
 import type { ExamLeaderboard, LeaderboardEntry } from '../../types/exam-ranking'
 import { formatParticipantCount } from '../../types/exam-ranking'
@@ -112,10 +113,7 @@ export function LeaderboardPageContent({
   return (
     <div>
       {backHref && (
-        <Link
-          to={backHref}
-          className="text-sm text-gray-600 hover:text-gray-900"
-        >
+        <Link to={backHref} className={backLink}>
           {backLabel}
         </Link>
       )}
@@ -124,12 +122,13 @@ export function LeaderboardPageContent({
         <h1 className="text-2xl font-semibold text-gray-900">
           {data.exam_title}
         </h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Sıralama tablosu ·{' '}
+        <p className="mt-1 text-sm font-medium text-gray-700 dark:text-slate-300">
+          Türkiye geneli sıralama ·{' '}
           {formatParticipantCount(data.total_participants)} katılımcı
         </p>
-        <p className="mt-1 text-xs text-gray-500">
-          Her kullanıcı yalnızca en iyi sonucuyla listelenir.
+        <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
+          Her katılımcı en iyi sonucuyla listelenir. İsimler gizlilik için “Arda Ö.”
+          biçiminde gösterilir; isteyen profilinden adını tamamen gizleyebilir.
         </p>
       </header>
 

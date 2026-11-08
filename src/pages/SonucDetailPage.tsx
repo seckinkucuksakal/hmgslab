@@ -1,3 +1,4 @@
+import { backLink } from '../lib/ui'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
@@ -234,7 +235,7 @@ export function SonucDetailPage() {
       <div>
         <Link
           to="/sonuclar"
-          className="text-sm text-gray-600 hover:text-gray-900"
+          className={backLink}
         >
           ← Sonuçlar
         </Link>
@@ -270,13 +271,13 @@ export function SonucDetailPage() {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="mt-4 mr-4 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+          className="mt-4 mr-4 rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
         >
           Yeniden dene
         </button>
         <Link
           to="/sonuclar"
-          className="mt-4 inline-block text-sm text-gray-600 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+          className={`mt-4 ${backLink}`}
         >
           Sonuçlara dön
         </Link>
@@ -294,7 +295,7 @@ export function SonucDetailPage() {
     <div>
       <Link
         to="/sonuclar"
-        className="text-sm text-gray-600 hover:text-gray-900"
+        className={backLink}
       >
         ← Sonuçlar
       </Link>
@@ -365,7 +366,7 @@ export function SonucDetailPage() {
               onClick={() => setFilter(key)}
               className={`rounded-md border px-3 py-1.5 text-xs font-medium ${
                 filter === key
-                  ? 'border-gray-900 bg-gray-900 text-white'
+                  ? 'border-blue-600 bg-blue-600 dark:bg-blue-500 text-white'
                   : 'border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
             >
@@ -397,7 +398,7 @@ export function SonucDetailPage() {
                     onClick={() => setCurrentIndex(index)}
                     className={`flex h-8 min-w-8 items-center justify-center gap-1 rounded border px-2 text-xs font-medium ${
                       isCurrent
-                        ? 'border-gray-900 bg-gray-900 text-white'
+                        ? 'border-blue-600 bg-blue-600 dark:bg-blue-500 text-white'
                         : 'border-gray-200 text-gray-700 hover:border-gray-400'
                     }`}
                     aria-current={isCurrent ? 'step' : undefined}

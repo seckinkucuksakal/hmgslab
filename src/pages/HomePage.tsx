@@ -1,3 +1,4 @@
+import { textLink } from '../lib/ui'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { UpcomingExamCountdown } from '../components/home/UpcomingExamCountdown'
@@ -73,7 +74,7 @@ export function HomePage() {
           {recentResults.length > 0 && (
             <Link
               to="/sonuclar"
-              className="text-sm text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-100"
+              className={`text-sm ${textLink}`}
             >
               Tümünü gör
             </Link>

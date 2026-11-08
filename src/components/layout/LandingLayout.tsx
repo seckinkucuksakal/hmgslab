@@ -41,7 +41,7 @@ export function LandingLayout({ children }: LandingLayoutProps) {
             </Link>
             <Link
               to={routes.kayit}
-              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-blue-600 dark:hover:bg-blue-500"
+              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400"
             >
               Kayıt ol
             </Link>

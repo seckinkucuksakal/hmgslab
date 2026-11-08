@@ -1,3 +1,4 @@
+import { backLink } from '../../lib/ui'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { ThemeToggle } from '../ThemeToggle'
 import { SITE_NAME } from '../../lib/brand'
@@ -38,7 +39,7 @@ export function AdminLayout() {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle compact />
-            <Link to={routes.home} className="text-sm text-gray-600 hover:text-gray-900">
+            <Link to={routes.home} className={backLink}>
               Uygulamaya dön
             </Link>
           </div>

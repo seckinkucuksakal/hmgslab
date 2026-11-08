@@ -49,7 +49,7 @@ function ExamSample() {
             key={n}
             className={`inline-flex h-6 min-w-6 items-center justify-center rounded border px-1 text-[11px] ${
               n === 12
-                ? 'border-gray-900 bg-gray-900 text-white dark:border-blue-600 dark:bg-blue-600'
+                ? 'border-blue-600 bg-blue-600 text-white dark:border-blue-600 dark:bg-blue-500'
                 : n % 3 === 0
                   ? 'border-gray-200 text-gray-500 dark:border-slate-800 dark:text-slate-500'
                   : 'border-gray-400 bg-gray-100 text-gray-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'

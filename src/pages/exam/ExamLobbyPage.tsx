@@ -1,3 +1,4 @@
+import { backLink } from '../../lib/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { EXAM_RULES } from '../../components/exam/ExamRules'
@@ -112,13 +113,13 @@ export function ExamLobbyPage() {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="mt-4 mr-4 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+          className="mt-4 mr-4 rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
         >
           Yeniden dene
         </button>
         <Link
           to="/denemeler"
-          className="mt-4 inline-block text-sm text-gray-600 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+          className={`mt-4 ${backLink}`}
         >
           Denemelere dön
         </Link>
@@ -141,7 +142,7 @@ export function ExamLobbyPage() {
       <div className="mx-auto max-w-lg">
         <Link
           to="/denemeler"
-          className="text-sm text-gray-600 hover:text-gray-900"
+          className={backLink}
         >
           ← Denemeler
         </Link>
@@ -178,7 +179,7 @@ export function ExamLobbyPage() {
         </p>
         <Link
           to={routes.denemeler}
-          className="mt-6 inline-flex rounded-md bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800 dark:bg-blue-600 dark:hover:bg-blue-500"
+          className="mt-6 inline-flex rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400"
         >
           Denemelere git ve kaydol
         </Link>
@@ -196,7 +197,7 @@ export function ExamLobbyPage() {
         <div className="min-w-0">
           <Link
             to={routes.denemeler}
-            className="text-xs text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-100"
+            className={backLink}
           >
             ← Denemeler
           </Link>

@@ -1,3 +1,4 @@
+import { backLink } from '../../lib/ui'
 import {
   useCallback,
   useEffect,
@@ -250,7 +251,7 @@ export function AdminQuestionForm({ questionId }: AdminQuestionFormProps) {
             <button
               type="submit"
               disabled={saving}
-              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+              className="rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-400 disabled:opacity-50"
             >
               {saving ? 'Kaydediliyor…' : 'Kaydet'}
             </button>
@@ -485,7 +486,7 @@ export function AdminQuestionForm({ questionId }: AdminQuestionFormProps) {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+            className="rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-400 disabled:opacity-50"
           >
             {saving ? 'Kaydediliyor…' : 'Kaydet'}
           </button>
@@ -501,7 +502,7 @@ export function AdminQuestionForm({ questionId }: AdminQuestionFormProps) {
           )}
           <Link
             to={routes.yonetimSorular}
-            className="text-sm text-gray-600 hover:text-gray-900"
+            className={backLink}
           >
             Listeye dön
           </Link>

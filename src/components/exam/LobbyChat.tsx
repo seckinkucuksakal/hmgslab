@@ -150,7 +150,7 @@ export function LobbyChat({ me, feed, chatOpen, connected, onSend }: LobbyChatPr
             <button
               type="submit"
               disabled={sending || !draft.trim()}
-              className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-40 dark:bg-blue-600 dark:hover:bg-blue-500"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-40 dark:bg-blue-500 dark:hover:bg-blue-400"
             >
               Gönder
             </button>

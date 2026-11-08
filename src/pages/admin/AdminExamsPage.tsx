@@ -1,3 +1,4 @@
+import { textLink } from '../../lib/ui'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
@@ -78,7 +79,7 @@ export function AdminExamsPage() {
         </div>
         <Link
           to={routes.yonetimDenemeYeni}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+          className="rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-400"
         >
           Yeni Deneme
         </Link>
@@ -102,7 +103,7 @@ export function AdminExamsPage() {
                 <div className="min-w-0 flex-1">
                   <Link
                     to={routes.yonetimDenemeDuzenle(exam.id)}
-                    className="text-sm font-medium text-gray-900 hover:underline"
+                    className={`text-sm ${textLink}`}
                   >
                     {exam.title}
                   </Link>

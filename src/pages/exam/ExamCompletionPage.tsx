@@ -1,3 +1,4 @@
+import { backLink } from '../../lib/ui'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useServerClock } from '../../hooks/useServerClock'
@@ -75,7 +76,7 @@ export function ExamCompletionPage() {
         <p className="text-sm text-red-700">{error ?? 'Bilgi bulunamadı.'}</p>
         <Link
           to="/denemeler"
-          className="mt-4 inline-block text-sm text-gray-600 hover:text-gray-900"
+          className={`mt-4 ${backLink}`}
         >
           Denemelere dön
         </Link>
@@ -113,7 +114,7 @@ export function ExamCompletionPage() {
 
       <Link
         to="/denemeler"
-        className="mt-10 inline-block text-sm text-gray-600 hover:text-gray-900"
+        className={`mt-10 ${backLink}`}
       >
         Denemelere dön
       </Link>

@@ -121,7 +121,7 @@ export function ConfirmDialog({
               'rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
               danger
                 ? 'bg-red-600 hover:bg-red-500 focus-visible:outline-red-600'
-                : 'bg-gray-900 hover:bg-gray-800 focus-visible:outline-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500',
+                : 'bg-blue-600 hover:bg-blue-700 focus-visible:outline-blue-600 dark:bg-blue-500 dark:hover:bg-blue-400',
             ].join(' ')}
           >
             {confirmLabel}

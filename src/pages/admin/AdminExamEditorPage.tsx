@@ -1,3 +1,4 @@
+import { backLink } from '../../lib/ui'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
@@ -542,7 +543,7 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
           type="button"
           disabled={saving}
           onClick={saveExam}
-          className="shrink-0 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          className="shrink-0 rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-400 disabled:opacity-50"
         >
           {saving ? 'Kaydediliyor…' : 'Kaydet'}
         </button>
@@ -1104,7 +1105,7 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
                     onClick={() => toggleQuestion(question)}
                     className={`shrink-0 rounded-md border px-3 py-1 text-xs font-medium ${
                       isSelected
-                        ? 'border-gray-900 bg-gray-900 text-white'
+                        ? 'border-blue-600 bg-blue-600 dark:bg-blue-500 text-white'
                         : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
                   >
@@ -1123,13 +1124,13 @@ export function AdminExamEditorPage({ examId }: AdminExamEditorPageProps) {
           type="button"
           disabled={saving}
           onClick={saveExam}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          className="rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-400 disabled:opacity-50"
         >
           {saving ? 'Kaydediliyor…' : 'Kaydet'}
         </button>
         <Link
           to={routes.yonetimDenemeler}
-          className="text-sm text-gray-600 hover:text-gray-900"
+          className={backLink}
         >
           Listeye dön
         </Link>

@@ -15,21 +15,21 @@ export type PricingPlan = {
 }
 
 /**
- * Credit model: one free exam on sign-up, then exam credits bought in packages
- * of 1 or 10 (no expiry). Prices mirror public.credit_packages, which is the
- * source of truth at checkout; keep the two in sync.
+ * Per-exam pricing: the first exam is free, every further exam is bought on
+ * its own. The price mirrors the 'single' row of public.credit_packages, which
+ * is the source of truth at checkout; keep the two in sync.
  */
 export const pricingPlans: PricingPlan[] = [
   {
     id: 'free',
     name: 'İlk deneme ücretsiz',
     priceLabel: 'Ücretsiz',
-    description: 'Kayıt olun, ilk denemenize ücretsiz katılın.',
+    description: 'Kayıt ol, ilk denemene ücretsiz katıl.',
     features: [
-      '1 deneme hakkı hediye',
+      'Canlı sınav veya serbest deneme',
       'Sonuç ve cevap incelemesi',
       'Ders ve konu bazlı performans analizi',
-      'Denemenin katılımcıları arasında sıralama',
+      'Türkiye geneli sıralama',
     ],
     highlighted: true,
     available: true,
@@ -38,33 +38,17 @@ export const pricingPlans: PricingPlan[] = [
   },
   {
     id: 'single',
-    name: '1 deneme',
+    name: 'Deneme başı',
     priceLabel: '149,90 TL',
-    description: 'Tek bir deneme veya canlı sınav için 1 hak.',
-    features: ['1 deneme hakkı', 'Süresiz geçerli'],
+    description: 'Sonraki her deneme ayrı ayrı satın alınır; paket zorunluluğu yok.',
+    features: [
+      'İstediğin denemeye katıl',
+      'Canlı sınavda katılmazsan ücretin bir sonraki denemen için kalır',
+      'Sonuç, inceleme ve sıralama dahil',
+    ],
     available: true,
-    ctaLabel: 'Satın al',
-    ctaHref: routes.paketler,
-  },
-  {
-    id: 'pack5',
-    name: '5 deneme',
-    priceLabel: '749,50 TL',
-    description: '5 deneme veya canlı sınav için 5 hak.',
-    features: ['5 deneme hakkı', 'Deneme başı 149,90 TL', 'Süresiz geçerli'],
-    available: true,
-    ctaLabel: 'Satın al',
-    ctaHref: routes.paketler,
-  },
-  {
-    id: 'pack10',
-    name: '10 deneme',
-    priceLabel: '1.350,00 TL',
-    description: '10 deneme veya canlı sınav için 10 hak.',
-    features: ['10 deneme hakkı', 'Deneme başı 135,00 TL', 'Süresiz geçerli'],
-    available: true,
-    ctaLabel: 'Satın al',
-    ctaHref: routes.paketler,
+    ctaLabel: 'Denemeleri gör',
+    ctaHref: routes.kayit,
   },
 ]
 

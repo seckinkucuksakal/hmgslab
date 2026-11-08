@@ -1,3 +1,4 @@
+import { backLink, secondaryButton } from '../../lib/ui'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
@@ -104,6 +105,16 @@ export function ExamTakePage() {
     queue?.clear()
     if (flagsKey) clearExamFlags(flagsKey)
   }, [queue, flagsKey])
+
+  // A new question starts at the top of the page, not where the last one
+  // was scrolled to.
+  const shownIndexRef = useRef(currentIndex)
+  useEffect(() => {
+    if (shownIndexRef.current === currentIndex) return
+    shownIndexRef.current = currentIndex
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
+  }, [currentIndex])
 
   useEffect(() => {
     if (!queue) return
@@ -400,13 +411,13 @@ export function ExamTakePage() {
           <button
             type="button"
             onClick={retryLoad}
-            className={`rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 ${focusRing}`}
+            className={`rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-400 ${focusRing}`}
           >
             Yeniden dene
           </button>
           <Link
             to="/denemeler"
-            className={`text-sm text-gray-600 hover:text-gray-900 ${focusRing}`}
+            className={backLink}
           >
             Denemelere dön
           </Link>
@@ -423,13 +434,13 @@ export function ExamTakePage() {
           <button
             type="button"
             onClick={retryLoad}
-            className={`rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 ${focusRing}`}
+            className={`rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-400 ${focusRing}`}
           >
             Yeniden dene
           </button>
           <Link
             to="/denemeler"
-            className={`text-sm text-gray-600 hover:text-gray-900 ${focusRing}`}
+            className={backLink}
           >
             Denemelere dön
           </Link>
@@ -558,7 +569,7 @@ export function ExamTakePage() {
             type="button"
             onClick={handleClearAnswer}
             disabled={inputsLocked}
-            className={`mt-4 min-h-10 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 ${focusRing}`}
+            className={`mt-4 ${secondaryButton}`}
           >
             Cevabı temizle
           </button>
@@ -587,7 +598,7 @@ export function ExamTakePage() {
                   onClick={() => setFilter(key)}
                   className={`min-h-9 rounded-full border px-3 py-1 text-xs font-medium ${focusRing} ${
                     filter === key
-                      ? 'border-gray-900 bg-gray-900 text-white'
+                      ? 'border-blue-600 bg-blue-600 dark:bg-blue-500 text-white'
                       : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                   }`}
                 >
@@ -617,7 +628,7 @@ export function ExamTakePage() {
                     onClick={() => setCurrentIndex(index)}
                     className={`relative h-10 min-w-10 touch-manipulation rounded border px-2 text-xs font-medium sm:h-8 sm:min-w-8 ${focusRing} ${
                       isCurrent
-                        ? 'border-gray-900 bg-gray-900 text-white'
+                        ? 'border-blue-600 bg-blue-600 dark:bg-blue-500 text-white'
                         : isAnswered
                           ? 'border-gray-400 bg-gray-100 text-gray-900'
                           : 'border-gray-200 text-gray-600 hover:border-gray-400'
@@ -663,7 +674,7 @@ export function ExamTakePage() {
               type="button"
               onClick={() => setShowConfirm(true)}
               disabled={submitting}
-              className={`min-h-11 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 ${focusRing}`}
+              className={`min-h-11 rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-400 disabled:opacity-50 ${focusRing}`}
             >
               {isScheduled ? 'Erken bitir' : 'Sınavı bitir'}
             </button>
@@ -749,7 +760,7 @@ export function ExamTakePage() {
                 type="button"
                 onClick={() => handleSubmit()}
                 disabled={submitting}
-                className={`min-h-11 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 ${focusRing}`}
+                className={`min-h-11 rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-400 disabled:opacity-50 ${focusRing}`}
               >
                 {submitting
                   ? 'Kayıtlar bekleniyor…'

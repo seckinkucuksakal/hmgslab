@@ -47,7 +47,10 @@ export type StudentExamListItem = {
   results_publish_at: string | null
   in_progress_attempt_id: string | null
   finalized_attempt_id: string | null
-  /** Enrolling spends a credit; only enrolled users can start the exam. */
+  created_at?: string
+  /** Per-exam price (kuruş) */
+  price_kurus?: number
+  /** Only enrolled users can start the exam (free first exam or a purchase). */
   is_enrolled: boolean
   can_enroll: boolean
   live_state: LiveExamState

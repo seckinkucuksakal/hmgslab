@@ -351,7 +351,7 @@ export function PerformansPage() {
             </p>
             <Link
               to="/denemeler"
-              className="mt-6 inline-block rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+              className="mt-6 inline-block rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-400"
             >
               Deneme çöz
             </Link>

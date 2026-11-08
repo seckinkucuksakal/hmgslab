@@ -12,6 +12,7 @@ import {
   updateLeaderboardVisibility,
 } from '../lib/profile-settings'
 import { routes } from '../lib/routes'
+import { textLink } from '../lib/ui'
 import { creditReasonLabels, getMyCredits, type MyCredits } from '../lib/credits'
 import { formatIstanbulDateTimeShort } from '../lib/istanbul-time'
 
@@ -241,7 +242,7 @@ export function ProfilPage() {
           <button
             type="submit"
             disabled={nameLoading}
-            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-400"
           >
             {nameLoading ? 'Kaydediliyor…' : 'Adı kaydet'}
           </button>
@@ -249,12 +250,12 @@ export function ProfilPage() {
       </SettingsSection>
 
       <SettingsSection
-        title="Deneme haklarım"
-        description="Her denemeye kayıt 1 hak kullanır. Kayıt olurken 1 hak hediye edilir; haklar süresizdir."
+        title="Denemelerim ve ödemeler"
+        description="İlk denemen ücretsiz; sonraki her deneme ayrı ayrı satın alınır."
       >
         {creditsError ? (
           <p className="text-sm text-red-700 dark:text-red-300">
-            Deneme hakkı bilgisi yüklenemedi.{' '}
+            Bilgiler yüklenemedi.{' '}
             <button type="button" onClick={loadCredits} className="font-medium underline">
               Yeniden dene
             </button>
@@ -263,17 +264,16 @@ export function ProfilPage() {
           <p className="text-sm text-gray-500">Yükleniyor…</p>
         ) : (
           <div className="space-y-4 text-sm text-gray-700 dark:text-slate-300">
-            <div className="flex justify-between gap-4">
-              <span>Kalan deneme hakkı</span>
-              <span className="font-semibold text-gray-900 dark:text-slate-100">
-                {credits.balance}
-              </span>
-            </div>
-            <Link
-              to={routes.paketler}
-              className="inline-block text-sm font-medium text-gray-900 underline dark:text-slate-100"
-            >
-              Deneme hakkı satın al
+            {credits.balance > 0 && (
+              <div className="flex justify-between gap-4">
+                <span>Kullanılmamış ücretsiz deneme</span>
+                <span className="font-semibold text-gray-900 dark:text-slate-100">
+                  {credits.balance}
+                </span>
+              </div>
+            )}
+            <Link to={routes.denemeler} className={textLink}>
+              Denemelere git →
             </Link>
             {credits.history.length > 0 && (
               <ul className="divide-y divide-gray-100 border-t border-gray-100 dark:divide-slate-800 dark:border-slate-800">
@@ -405,7 +405,7 @@ export function ProfilPage() {
               <button
                 type="submit"
                 disabled={passwordLoading}
-                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-400"
               >
                 {passwordLoading ? 'Güncelleniyor…' : 'Şifreyi güncelle'}
               </button>

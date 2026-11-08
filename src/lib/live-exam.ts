@@ -58,6 +58,7 @@ export type UpcomingExamPreview = {
   isEnrolled: boolean
   canEnroll: boolean
   inProgressAttemptId: string | null
+  priceKurus: number
   secondsUntilStart: number
   serverNow: string
 }
@@ -101,6 +102,7 @@ export async function fetchNextUpcomingExam(
       isEnrolled: exam.is_enrolled,
       canEnroll: exam.can_enroll,
       inProgressAttemptId: exam.in_progress_attempt_id,
+      priceKurus: exam.price_kurus ?? 14990,
       secondsUntilStart: exam.seconds_until_start ?? 0,
       serverNow: exam.server_now ?? new Date().toISOString(),
     }

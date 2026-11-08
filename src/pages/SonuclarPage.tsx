@@ -1,3 +1,4 @@
+import { textLink } from '../lib/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
@@ -108,7 +109,7 @@ export function SonuclarPage() {
                 <div className="min-w-0 flex-1">
                   <Link
                     to={`/sonuclar/${result.id}`}
-                    className="text-sm font-medium text-gray-900 hover:underline"
+                    className={`text-sm ${textLink}`}
                   >
                     {result.exam_title}
                   </Link>
@@ -150,7 +151,7 @@ export function SonuclarPage() {
                 </div>
                 <Link
                   to={`/sonuclar/${result.id}`}
-                  className="text-sm text-gray-900 hover:underline"
+                  className={`text-sm ${textLink}`}
                 >
                   {isResultEmbargo(result) ? 'Bekle' : 'İncele'}
                 </Link>

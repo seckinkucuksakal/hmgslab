@@ -96,7 +96,7 @@ export function ResetPasswordPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          className="w-full rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-400 disabled:opacity-50"
         >
           {loading ? 'Kaydediliyor…' : 'Şifreyi güncelle'}
         </button>

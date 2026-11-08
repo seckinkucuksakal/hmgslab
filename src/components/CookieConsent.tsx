@@ -1,3 +1,4 @@
+import { textLink } from '../lib/ui'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -35,14 +36,14 @@ export function CookieConsent() {
         <div className="flex shrink-0 flex-wrap items-center gap-3">
           <Link
             to="/cerez-politikasi"
-            className="text-sm text-gray-600 hover:text-gray-900 hover:underline"
+            className={`text-sm ${textLink}`}
           >
             Çerez Politikası
           </Link>
           <button
             type="button"
             onClick={handleAccept}
-            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            className="rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-400"
           >
             Tamam
           </button>

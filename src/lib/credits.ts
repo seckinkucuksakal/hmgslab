@@ -1,5 +1,12 @@
 import { supabase } from './supabase'
 
+/**
+ * Pricing model: the sign-up gift is one free exam; every further exam is
+ * bought on its own (per-exam payment). Internally the free exam and each
+ * purchase are a "credit" that enrolling spends, but users never see a
+ * credit balance, only "free exam available" or the exam's price.
+ */
+
 export type CreditReason =
   | 'signup_bonus'
   | 'purchase'
@@ -17,6 +24,7 @@ export type CreditHistoryItem = {
 }
 
 export type MyCredits = {
+  /** Free (or already paid, not yet used) exam entries. */
   balance: number
   history: CreditHistoryItem[]
 }
@@ -27,7 +35,7 @@ export type EnrollResult = {
   credit_balance: number
 }
 
-/** Fired after an action that changes the balance, so the header can refresh. */
+/** Fired after an action that changes the user's entries, so views can refresh. */
 export const CREDITS_CHANGED_EVENT = 'hmgs:credits-changed'
 
 export function notifyCreditsChanged(): void {
@@ -35,9 +43,9 @@ export function notifyCreditsChanged(): void {
 }
 
 export const creditReasonLabels: Record<CreditReason, string> = {
-  signup_bonus: 'Kayıt hediyesi',
+  signup_bonus: 'Ücretsiz ilk deneme',
   purchase: 'Satın alma',
-  admin_grant: 'Tanımlanan hak',
+  admin_grant: 'Tanımlanan deneme',
   enrollment: 'Denemeye kayıt',
   refund: 'İade (katılım olmadı)',
 }
@@ -49,56 +57,45 @@ export async function getMyCredits(): Promise<MyCredits> {
   return data as MyCredits
 }
 
-/** Spends one credit, unless the user is already enrolled in this exam. */
+/** Uses a free / already paid entry, unless the user is already enrolled. */
 export async function enrollInExam(examId: string): Promise<EnrollResult> {
   const { data, error } = await supabase.rpc('enroll_in_exam', { p_exam_id: examId })
   if (error) throw error
   return data as EnrollResult
 }
 
+export type ExamOrder = {
+  id: string
+  exam_id: string
+  amount_kurus: number
+  currency: 'TRY'
+  status: 'pending' | 'paid' | 'canceled' | 'failed'
+}
+
+/**
+ * Opens (or reuses) a pending order for one exam. Paying it enrolls the user
+ * on the server. Call this only when a real payment starts.
+ */
+export async function createExamOrder(examId: string): Promise<ExamOrder> {
+  const { data, error } = await supabase.rpc('create_exam_order', { p_exam_id: examId })
+  if (error) throw error
+  return data as ExamOrder
+}
+
 const enrollmentMessages = [
-  'Yetersiz deneme hakkı',
   'kayıtlı değilsiniz',
   'kayıt süresi sona erdi',
+  'zaten kayıtlısınız',
 ]
 
 export function getEnrollmentErrorMessage(error: unknown): string | null {
   if (!error || typeof error !== 'object' || !('message' in error)) return null
   const message = String((error as { message: unknown }).message)
   if (message.includes('Yetersiz deneme hakkı')) {
-    return 'Deneme hakkınız kalmadı. Yeni bir deneme için Paketler sayfasından hak satın alabilirsiniz.'
+    return 'Bu deneme için ödeme yapmanız gerekiyor.'
   }
   if (enrollmentMessages.some((m) => message.includes(m))) return message
   return null
-}
-
-export type CreditPackage = {
-  id: string
-  name: string
-  credits: number
-  price_kurus: number
-  currency: 'TRY'
-}
-
-export type CreditOrderStatus = 'pending' | 'paid' | 'canceled' | 'failed'
-
-export type CreditOrder = {
-  id: string
-  package_id: string
-  package_name: string | null
-  credits: number
-  amount_kurus: number
-  currency: 'TRY'
-  status: CreditOrderStatus
-  created_at: string
-  paid_at: string | null
-}
-
-export const creditOrderStatusLabels: Record<CreditOrderStatus, string> = {
-  pending: 'Ödeme bekleniyor',
-  paid: 'Ödendi',
-  canceled: 'İptal edildi',
-  failed: 'Ödeme başarısız',
 }
 
 const tryFormatter = new Intl.NumberFormat('tr-TR', {
@@ -110,34 +107,4 @@ const tryFormatter = new Intl.NumberFormat('tr-TR', {
 /** Amounts are stored in kuruş on the server. */
 export function formatTry(kurus: number): string {
   return tryFormatter.format(kurus / 100)
-}
-
-export async function getCreditPackages(): Promise<CreditPackage[]> {
-  const { data, error } = await supabase
-    .from('credit_packages')
-    .select('id, name, credits, price_kurus, currency')
-    .eq('is_active', true)
-    .order('sort_order')
-  if (error) throw error
-  return data as CreditPackage[]
-}
-
-/** Creates (or reuses) a pending order; credits are granted only once it is paid. */
-export async function createCreditOrder(packageId: string): Promise<CreditOrder> {
-  const { data, error } = await supabase.rpc('create_credit_order', {
-    p_package_id: packageId,
-  })
-  if (error) throw error
-  return data as CreditOrder
-}
-
-export async function cancelCreditOrder(orderId: string): Promise<void> {
-  const { error } = await supabase.rpc('cancel_credit_order', { p_order_id: orderId })
-  if (error) throw error
-}
-
-export async function getMyCreditOrders(): Promise<CreditOrder[]> {
-  const { data, error } = await supabase.rpc('get_my_credit_orders')
-  if (error) throw error
-  return data as CreditOrder[]
 }

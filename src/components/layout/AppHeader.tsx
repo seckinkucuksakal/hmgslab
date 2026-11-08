@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { useProfile } from '../../hooks/useProfile'
 import { SiteLogo } from '../SiteLogo'
 import { NavbarClock, NavbarUserButton } from './NavbarClock'
-import { CreditBadge } from './CreditBadge'
+import { HmgsCountdown } from './HmgsCountdown'
 import { SITE_NAME } from '../../lib/brand'
 import { routes } from '../../lib/routes'
 
@@ -27,7 +27,7 @@ const mobileNavLinkClass = ({ isActive }: { isActive: boolean }) =>
   [
     'block rounded-lg px-3 py-2 text-sm font-medium transition-colors',
     isActive
-      ? 'bg-gray-900 text-white'
+      ? 'bg-blue-600 dark:bg-blue-500 text-white'
       : 'text-gray-700 hover:bg-gray-100',
   ].join(' ')
 
@@ -94,7 +94,7 @@ export function AppHeader() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
-          <CreditBadge />
+          <HmgsCountdown />
           <NavbarClock />
 
           <button
