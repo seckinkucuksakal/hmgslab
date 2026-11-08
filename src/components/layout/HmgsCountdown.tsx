@@ -16,7 +16,7 @@ const dotClass: Record<HmgsUrgency, string> = {
   red: 'bg-red-500',
 }
 
-/** "HMGS'ye ~168 gün" pill; the date is approximate and says so. */
+/** "HMGS'ye 168 gün" pill (the date in lib/hmgs.ts is from the planned calendar). */
 export function HmgsCountdown() {
   const { serverNow } = useServerClock()
   const now = serverNow ?? new Date()
@@ -26,20 +26,19 @@ export function HmgsCountdown() {
   const days = daysUntilHmgs(session, now)
   const urgency = hmgsUrgency(days)
   const dateLabel = formatIstanbulDate(`${session.date}T12:00:00+03:00`)
-  const title = `${session.label}: yaklaşık ${dateLabel}. Kesin tarih ÖSYM tarafından açıklanacak.`
+  const title = `${session.label}: ${dateLabel}`
 
   return (
     <span
       title={title}
-      aria-label={`Bir sonraki HMGS'ye yaklaşık ${days} gün. ${title}`}
+      aria-label={`Bir sonraki HMGS'ye ${days} gün. ${title}`}
       className={[
         'hidden shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold lg:inline-flex',
         urgencyClass[urgency],
       ].join(' ')}
     >
       <span aria-hidden className={['h-2 w-2 rounded-full', dotClass[urgency]].join(' ')} />
-      {days === 0 ? 'HMGS bugün' : <>HMGS&apos;ye ~{days} gün</>}
-      <span className="text-xs font-medium opacity-75">(yaklaşık)</span>
+      {days === 0 ? 'HMGS bugün' : <>HMGS&apos;ye {days} gün</>}
     </span>
   )
 }
