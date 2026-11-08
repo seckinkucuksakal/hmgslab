@@ -9,6 +9,7 @@ export const routes = {
   sonucDetay: (attemptId: string) => `/sonuclar/${attemptId}`,
   performans: '/performans',
   profil: '/profil',
+  paketler: '/paketler',
   sinav: (attemptId: string) => `/sinav/${attemptId}`,
   sinavTamamlandi: (attemptId: string) => `/sinav/${attemptId}/tamamlandi`,
   sinavSonuc: (attemptId: string) => `/sinav/${attemptId}/sonuc`,

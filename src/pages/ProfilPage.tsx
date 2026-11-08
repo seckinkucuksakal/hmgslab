@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { PasswordInput } from '../components/PasswordInput'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { useAuth } from '../hooks/useAuth'
@@ -269,9 +269,12 @@ export function ProfilPage() {
                 {credits.balance}
               </span>
             </div>
-            <p className="text-xs text-gray-500 dark:text-slate-400">
-              1 ve 10 denemelik paketlerin satışı yakında açılacak.
-            </p>
+            <Link
+              to={routes.paketler}
+              className="inline-block text-sm font-medium text-gray-900 underline dark:text-slate-100"
+            >
+              Deneme hakkı satın al
+            </Link>
             {credits.history.length > 0 && (
               <ul className="divide-y divide-gray-100 border-t border-gray-100 dark:divide-slate-800 dark:border-slate-800">
                 {credits.history.map((item) => (

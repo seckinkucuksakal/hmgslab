@@ -32,6 +32,7 @@ const ExamResultPage = lazy(() => import('./pages/exam/ExamResultPage').then((m)
 const ExamTakePage = lazy(() => import('./pages/exam/ExamTakePage').then((m) => ({ default: m.ExamTakePage })))
 const HomePage = lazy(() => import('./pages/HomePage').then((m) => ({ default: m.HomePage })))
 const LandingPage = lazy(() => import('./pages/LandingPage').then((m) => ({ default: m.LandingPage })))
+const PaketlerPage = lazy(() => import('./pages/PaketlerPage').then((m) => ({ default: m.PaketlerPage })))
 const PerformansPage = lazy(() => import('./pages/PerformansPage').then((m) => ({ default: m.PerformansPage })))
 const ProfilPage = lazy(() => import('./pages/ProfilPage').then((m) => ({ default: m.ProfilPage })))
 const SonuclarPage = lazy(() => import('./pages/SonuclarPage').then((m) => ({ default: m.SonuclarPage })))
@@ -75,6 +76,7 @@ function App() {
             <Route path="/sonuclar/:attemptId" element={<SonucDetailPage />} />
             <Route path="/performans" element={<PerformansPage />} />
             <Route path="/profil" element={<ProfilPage />} />
+            <Route path={routes.paketler} element={<PaketlerPage />} />
           </Route>
 
           <Route

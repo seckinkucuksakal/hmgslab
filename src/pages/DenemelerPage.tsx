@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import {
   fetchStudentExams,
@@ -14,6 +14,7 @@ import {
 } from '../lib/exam-session'
 import { formatIstanbulDateTimeShort } from '../lib/istanbul-time'
 import { enrollInExam, getMyCredits } from '../lib/credits'
+import { routes } from '../lib/routes'
 import type { StudentExamListItem } from '../types/live-exam'
 import { liveExamStateLabels } from '../types/live-exam'
 
@@ -239,9 +240,10 @@ export function DenemelerPage() {
         <p className="mt-4 text-sm text-gray-700">
           Kalan deneme hakkınız:{' '}
           <span className="font-semibold text-gray-900">{creditBalance}</span>
-          {creditBalance < 1 && (
-            <span className="text-gray-500"> · Paket satışı yakında açılacak.</span>
-          )}
+          {' · '}
+          <Link to={routes.paketler} className="font-medium text-gray-900 underline">
+            Hak satın al
+          </Link>
         </p>
       )}
 

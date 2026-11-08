@@ -96,8 +96,8 @@ export function LandingPage() {
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-gray-600 dark:text-slate-400">
               Kayıt olan herkese 1 deneme hakkı hediye edilir. Sonraki
-              denemeler için 1 ve 10 denemelik paketler sunulacak; ödeme sistemi
-              ve fiyatlar belirlendiğinde duyurulacak.
+              denemeler için 1 veya 10 denemelik paket alabilirsiniz; haklar
+              süresizdir.
             </p>
           </div>
 
@@ -154,8 +154,7 @@ export function LandingPage() {
           </ul>
 
           <p className="mt-8 text-center text-xs text-gray-500 dark:text-slate-500">
-            Paket içerikleri ve fiyatlar henüz kesinleşmedi; bu sayfada satın
-            alma işlemi yapılamaz.
+            Online ödeme yakında aktif olacak.
           </p>
         </div>
       </section>

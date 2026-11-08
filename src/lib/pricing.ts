@@ -16,8 +16,8 @@ export type PricingPlan = {
 
 /**
  * Credit model: one free exam on sign-up, then exam credits bought in packages
- * of 1 or 10 (no expiry). Payments are not connected yet, so the paid packages
- * are announced without prices or any purchase action.
+ * of 1 or 10 (no expiry). Prices mirror public.credit_packages, which is the
+ * source of truth at checkout; keep the two in sync.
  */
 export const pricingPlans: PricingPlan[] = [
   {
@@ -39,22 +39,22 @@ export const pricingPlans: PricingPlan[] = [
   {
     id: 'single',
     name: '1 deneme',
-    priceLabel: 'Fiyat açıklanacak',
+    priceLabel: '149,90 TL',
     description: 'Tek bir deneme veya canlı sınav için 1 hak.',
-    features: ['Süresiz geçerli', 'Ödeme sistemi devreye girdiğinde satışa açılacak'],
-    available: false,
-    ctaLabel: 'Yakında',
-    ctaHref: routes.kayit,
+    features: ['1 deneme hakkı', 'Süresiz geçerli'],
+    available: true,
+    ctaLabel: 'Satın al',
+    ctaHref: routes.paketler,
   },
   {
     id: 'pack10',
     name: '10 deneme',
-    priceLabel: 'Fiyat açıklanacak',
+    priceLabel: '1.350,00 TL',
     description: '10 deneme veya canlı sınav için 10 hak.',
-    features: ['Süresiz geçerli', 'Ödeme sistemi devreye girdiğinde satışa açılacak'],
-    available: false,
-    ctaLabel: 'Yakında',
-    ctaHref: routes.kayit,
+    features: ['10 deneme hakkı', 'Deneme başı 135,00 TL', 'Süresiz geçerli'],
+    available: true,
+    ctaLabel: 'Satın al',
+    ctaHref: routes.paketler,
   },
 ]
 
