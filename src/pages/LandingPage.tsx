@@ -96,12 +96,12 @@ export function LandingPage() {
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-gray-600 dark:text-slate-400">
               Kayıt olan herkese 1 deneme hakkı hediye edilir. Sonraki
-              denemeler için 1 veya 10 denemelik paket alabilirsiniz; haklar
+              denemeler için 1, 5 veya 10 denemelik paket alabilirsiniz; haklar
               süresizdir.
             </p>
           </div>
 
-          <ul className="mt-12 grid gap-6 lg:grid-cols-3">
+          <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {pricingPlans.map((plan) => (
               <li
                 key={plan.id}

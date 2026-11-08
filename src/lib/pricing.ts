@@ -47,6 +47,16 @@ export const pricingPlans: PricingPlan[] = [
     ctaHref: routes.paketler,
   },
   {
+    id: 'pack5',
+    name: '5 deneme',
+    priceLabel: '749,50 TL',
+    description: '5 deneme veya canlı sınav için 5 hak.',
+    features: ['5 deneme hakkı', 'Deneme başı 149,90 TL', 'Süresiz geçerli'],
+    available: true,
+    ctaLabel: 'Satın al',
+    ctaHref: routes.paketler,
+  },
+  {
     id: 'pack10',
     name: '10 deneme',
     priceLabel: '1.350,00 TL',

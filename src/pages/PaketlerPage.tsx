@@ -121,7 +121,7 @@ export function PaketlerPage() {
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]">
           <fieldset>
             <legend className="sr-only">Paket seçimi</legend>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               {packages.map((pkg) => {
                 const isSelected = selected?.id === pkg.id
                 const isBest = pkg.id === bestValueId
@@ -159,7 +159,7 @@ export function PaketlerPage() {
                         <p className="text-sm font-medium text-gray-600 dark:text-slate-400">
                           {pkg.name}
                         </p>
-                        <p className="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">
+                        <p className="mt-1 whitespace-nowrap text-2xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">
                           {formatTry(pkg.price_kurus)}
                         </p>
                       </div>
